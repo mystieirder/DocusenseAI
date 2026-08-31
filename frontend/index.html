@@ -412,8 +412,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
       </label>
 
       <button class="auth-btn" id="loginBtn">Sign in</button>
-      <p style="text-align:center;margin:10px 0 0;font-size:13px"><a href="#" id="toForgot" style="color:var(--brs);text-decoration:none;opacity:.85">Forgot password?</a></p>
-      <div class="auth-switch">No account? <a id="toRegister">Create one</a></div>
+      <!-- Removed "Forgot Password" link here -->
+      
+      <div class="auth-switch" style="margin-top: 24px;">No account? <a id="toRegister">Create one</a></div>
     </div>
 
     <!-- REGISTER PANEL -->
@@ -445,36 +446,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
     </div>
   </div>
 </div>
-<!-- FORGOT PASSWORD PANEL -->
-<div id="forgotPanel" style="display:none;padding:0 32px 32px">
-  <div class="auth-title">Reset Password</div>
-  <div class="auth-sub">Enter your email and we'll send a reset link.</div>
-  <div id="forgotError" class="auth-error"></div>
-  <div id="forgotSuccess" class="auth-success"></div>
-  <div class="auth-field"><label>Email</label>
-    <input id="forgotEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
-  </div>
-  <button class="auth-btn" id="forgotBtn">Send Reset Link</button>
-  <div class="auth-switch"><a id="backToLogin" style="cursor:pointer">← Back to Sign In</a></div>
-</div>
 
-<!-- RESET PASSWORD PANEL -->
-<div id="resetPanel" style="display:none;padding:0 32px 32px">
-  <div class="auth-title">New Password</div>
-  <div class="auth-sub">Choose a strong password for your account.</div>
-  <div id="resetError" class="auth-error"></div>
-  <div id="resetSuccess" class="auth-success"></div>
-  <div class="auth-field"><label>New Password</label>
-    <div class="auth-field-pw">
-      <input id="resetPassword" type="password" placeholder="Min 8 characters" autocomplete="new-password"/>
-      <button type="button" class="pw-toggle" id="toggleResetPw" aria-label="Show password">
-        <svg id="eyeOnReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-        <svg id="eyeOffReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.6 20.6 0 0 1 5.06-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a20.6 20.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
-      </button>
-    </div>
-  </div>
-  <button class="auth-btn" id="resetBtn">Update Password</button>
-</div>
+<!-- Removed Forgot and Reset Password Panels -->
 
 <!-- ═══════════════ END AUTH ═══════════════════ -->
 
@@ -708,19 +681,16 @@ const registerPanel = document.getElementById("registerPanel");
 function showPanel(name){
   loginPanel.style.display    = name==="login"    ? "block" : "none";
   registerPanel.style.display = name==="register" ? "block" : "none";
-  document.getElementById("forgotPanel").style.display = name==="forgot" ? "block" : "none";
-  document.getElementById("resetPanel").style.display  = name==="reset"  ? "block" : "none";
   clearAuthMessages();
 }
 document.getElementById("toRegister").addEventListener("click", ()=> showPanel("register"));
-(function(){ const t=new URLSearchParams(window.location.search).get("token"); if(t) showPanel("reset"); })();
 document.getElementById("toLogin").addEventListener("click", ()=>{
   registerPanel.style.display="none"; loginPanel.style.display="block";
   clearAuthMessages();
 });
 
 function clearAuthMessages(){
-  ["loginError","registerError","registerSuccess","forgotError","forgotSuccess","resetError","resetSuccess"].forEach(id=>{
+  ["loginError","registerError","registerSuccess"].forEach(id=>{
     const el=document.getElementById(id); if(el){ el.classList.remove("visible"); el.textContent=""; }
   });
 }
@@ -751,11 +721,6 @@ setupPwToggle("toggleRegPw","regPassword","eyeOnReg","eyeOffReg");
 
 // LOGIN
 document.getElementById("loginBtn").addEventListener("click", doLogin);
-document.getElementById("toForgot").addEventListener("click", (e)=>{ e.preventDefault(); showPanel("forgot"); });
-document.getElementById("backToLogin").addEventListener("click", ()=> showPanel("login"));
-document.getElementById("forgotBtn").addEventListener("click", doForgotPassword);
-document.getElementById("resetBtn").addEventListener("click", doResetPassword);
-setupPwToggle("toggleResetPw","resetPassword","eyeOnReset","eyeOffReset");
 document.getElementById("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
 async function doLogin(){
@@ -800,71 +765,6 @@ async function doLogin(){
 document.getElementById("registerBtn").addEventListener("click", doRegister);
 document.getElementById("regPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
 
-// panel helpers now use showPanel() defined below
-function _unused_showLoginPanel(){
-  document.getElementById("loginPanel").style.display="";
-  document.getElementById("registerPanel").style.display="none";
-  document.getElementById("forgotPanel").style.display="none";
-  document.getElementById("resetPanel").style.display="none";
-}
-function showForgotPanel(){
-  document.getElementById("loginPanel").style.display="none";
-  document.getElementById("registerPanel").style.display="none";
-  document.getElementById("forgotPanel").style.display="";
-  document.getElementById("resetPanel").style.display="none";
-}
-async function doForgotPassword(){
-  const email = document.getElementById("forgotEmail").value.trim();
-  document.getElementById("forgotError").classList.remove("visible");
-  document.getElementById("forgotSuccess").classList.remove("visible");
-  if(!email){ showAuthError("forgotError","Please enter your email."); return; }
-  const btn = document.getElementById("forgotBtn");
-  btn.disabled=true; btn.textContent="Sending…";
-  try{
-    const res = await fetch(`${API}/api/auth/forgot-password`,{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({email})
-    });
-    const data = await res.json();
-    if(!res.ok){ showAuthError("forgotError", data.detail || "Something went wrong. Please try again."); return; }
-    const s = document.getElementById("forgotSuccess");
-    s.textContent = data.message || "Reset link sent! Check your inbox.";
-    s.classList.add("visible");
-  }catch(e){
-    showAuthError("forgotError","Cannot reach the backend. Is it running?");
-  } finally {
-    btn.disabled=false; btn.textContent="Send Reset Link";
-  }
-}
-async function doResetPassword(){
-  const token = new URLSearchParams(window.location.search).get("token");
-  const pw    = document.getElementById("resetPassword").value;
-  document.getElementById("resetError").classList.remove("visible");
-  document.getElementById("resetSuccess").classList.remove("visible");
-  if(!token){ showAuthError("resetError","Missing or invalid reset link."); return; }
-  if(!pw){ showAuthError("resetError","Please enter a new password."); return; }
-  const btn = document.getElementById("resetBtn");
-  btn.disabled=true; btn.textContent="Updating…";
-  try{
-    const res = await fetch(`${API}/api/auth/reset-password`,{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({token, new_password: pw})
-    });
-    const data = await res.json();
-    if(!res.ok){ showAuthError("resetError", data.detail || "Reset failed."); return; }
-    const s = document.getElementById("resetSuccess");
-    s.textContent = (data.message || "Password updated.") + " Redirecting to login...";
-    s.classList.add("visible");
-    setTimeout(()=>{ window.location.href = "/app"; }, 2000);
-  }catch(e){
-    showAuthError("resetError","Cannot reach the backend. Is it running?");
-  } finally {
-    btn.disabled=false; btn.textContent="Update Password";
-  }
-}
-// Check URL for reset token on load
-// reset token check handled in showPanel init above
-
 async function doRegister(){
   const name     = document.getElementById("regName").value.trim();
   const email    = document.getElementById("regEmail").value.trim();
@@ -885,9 +785,7 @@ async function doRegister(){
     });
     const data = await res.json();
     if(!res.ok){ showAuthError("registerError", data.detail || "Registration failed."); return; }
-    // Accounts are currently auto-verified on the backend (email verification is
-    // disabled until SMTP is configured — see auth.py), so it's safe to sign the
-    // user straight in here.
+    
     const s = document.getElementById("registerSuccess");
     s.textContent = "Account created! Signing you in…"; s.classList.add("visible");
     setTimeout(()=> doLoginWithCredentials(email, password), 800);
