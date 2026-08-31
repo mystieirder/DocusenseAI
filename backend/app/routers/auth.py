@@ -54,17 +54,20 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
         raise HTTPException(400, str(e))
 
     email = req.email.lower().strip()
-    token = secrets.token_urlsafe(32)
-    token_expiry = datetime.utcnow() + timedelta(hours=24)
 
+    # NOTE: email verification is currently disabled — SMTP isn't configured on the
+    # deployed backend (SMTP_USER/PASSWORD/FROM aren't set in render.yaml), so
+    # verification emails were silently failing to send and every new account was
+    # permanently stuck unverified, unable to log in. Accounts are auto-verified for
+    # now. To re-enable verification: set is_verified=False below, restore the
+    # verification_token/expiry fields, call send_verification_email() again, and
+    # add real SMTP_HOST/PORT/USER/PASSWORD/FROM values as env vars in Render.
     user = User(
         email=email,
         name=req.name.strip(),
         password_hash=hash_password(req.password),
         role=_role_for(email),
-        is_verified=False,
-        verification_token=token,
-        verification_token_expiry=token_expiry,
+        is_verified=True,
     )
     db.add(user)
     try:
@@ -74,8 +77,6 @@ def register(req: RegisterRequest, request: Request, db: Session = Depends(get_d
         raise HTTPException(409, "An account with that email already exists")
     db.refresh(user)
 
-    # Send verification email (fire-and-forget — don't fail registration if email fails)
-    send_verification_email(email, user.name, token, _base_url(request))
     return user
 
 

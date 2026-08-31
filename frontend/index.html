@@ -443,39 +443,39 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
       <button class="auth-btn" id="registerBtn">Create account</button>
       <div class="auth-switch">Already have an account? <a id="toLogin">Sign in</a></div>
     </div>
-
-    <!-- FORGOT PASSWORD PANEL -->
-    <div id="forgotPanel" style="display:none">
-      <div class="auth-title">Reset Password</div>
-      <div class="auth-sub">Enter your email and we'll send a reset link.</div>
-      <div id="forgotError" class="auth-error"></div>
-      <div id="forgotSuccess" class="auth-success"></div>
-      <div class="auth-field"><label>Email</label>
-        <input id="forgotEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
-      </div>
-      <button class="auth-btn" id="forgotBtn">Send Reset Link</button>
-      <div class="auth-switch"><a id="backToLogin" style="cursor:pointer">← Back to Sign In</a></div>
-    </div>
-
-    <!-- RESET PASSWORD PANEL -->
-    <div id="resetPanel" style="display:none">
-      <div class="auth-title">New Password</div>
-      <div class="auth-sub">Choose a strong password for your account.</div>
-      <div id="resetError" class="auth-error"></div>
-      <div id="resetSuccess" class="auth-success"></div>
-      <div class="auth-field"><label>New Password</label>
-        <div class="auth-field-pw">
-          <input id="resetPassword" type="password" placeholder="Min 8 characters" autocomplete="new-password"/>
-          <button type="button" class="pw-toggle" id="toggleResetPw" aria-label="Show password">
-            <svg id="eyeOnReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-            <svg id="eyeOffReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.6 20.6 0 0 1 5.06-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a20.6 20.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
-          </button>
-        </div>
-      </div>
-      <button class="auth-btn" id="resetBtn">Update Password</button>
-    </div>
   </div>
 </div>
+<!-- FORGOT PASSWORD PANEL -->
+<div id="forgotPanel" style="display:none;padding:0 32px 32px">
+  <div class="auth-title">Reset Password</div>
+  <div class="auth-sub">Enter your email and we'll send a reset link.</div>
+  <div id="forgotError" class="auth-error"></div>
+  <div id="forgotSuccess" class="auth-success"></div>
+  <div class="auth-field"><label>Email</label>
+    <input id="forgotEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+  </div>
+  <button class="auth-btn" id="forgotBtn">Send Reset Link</button>
+  <div class="auth-switch"><a id="backToLogin" style="cursor:pointer">← Back to Sign In</a></div>
+</div>
+
+<!-- RESET PASSWORD PANEL -->
+<div id="resetPanel" style="display:none;padding:0 32px 32px">
+  <div class="auth-title">New Password</div>
+  <div class="auth-sub">Choose a strong password for your account.</div>
+  <div id="resetError" class="auth-error"></div>
+  <div id="resetSuccess" class="auth-success"></div>
+  <div class="auth-field"><label>New Password</label>
+    <div class="auth-field-pw">
+      <input id="resetPassword" type="password" placeholder="Min 8 characters" autocomplete="new-password"/>
+      <button type="button" class="pw-toggle" id="toggleResetPw" aria-label="Show password">
+        <svg id="eyeOnReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="eyeOffReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.6 20.6 0 0 1 5.06-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a20.6 20.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+      </button>
+    </div>
+  </div>
+  <button class="auth-btn" id="resetBtn">Update Password</button>
+</div>
+
 <!-- ═══════════════ END AUTH ═══════════════════ -->
 
 <div class="app">
@@ -865,25 +865,6 @@ async function doResetPassword(){
 // Check URL for reset token on load
 // reset token check handled in showPanel init above
 
-async function doLoginWithCredentials(email, password){
-  try{
-    const res = await fetch(`${API}/api/auth/login`,{
-      method:"POST",
-      headers:{"Content-Type":"application/x-www-form-urlencoded"},
-      body: new URLSearchParams({username: email, password})
-    });
-    const data = await res.json();
-    if(!res.ok){ showAuthError("registerError", data.detail || "Sign in after register failed."); return; }
-    authToken   = data.access_token;
-    currentUser = data.user;
-    localStorage.setItem("ds_token", authToken);
-    enterApp();
-  }catch(e){
-    showAuthError("registerError","Account created but couldn't sign in automatically. Please sign in manually.");
-    document.getElementById("toLogin").click();
-  }
-}
-
 async function doRegister(){
   const name     = document.getElementById("regName").value.trim();
   const email    = document.getElementById("regEmail").value.trim();
@@ -904,14 +885,35 @@ async function doRegister(){
     });
     const data = await res.json();
     if(!res.ok){ showAuthError("registerError", data.detail || "Registration failed."); return; }
+    // Accounts are currently auto-verified on the backend (email verification is
+    // disabled until SMTP is configured — see auth.py), so it's safe to sign the
+    // user straight in here.
     const s = document.getElementById("registerSuccess");
     s.textContent = "Account created! Signing you in…"; s.classList.add("visible");
-    // Auto-login directly instead of relying on DOM field injection
     setTimeout(()=> doLoginWithCredentials(email, password), 800);
   }catch(e){
     showAuthError("registerError","Cannot reach the backend. Is it running?");
   } finally {
     btn.disabled=false; btn.textContent="Create account";
+  }
+}
+
+async function doLoginWithCredentials(email, password){
+  try{
+    const res = await fetch(`${API}/api/auth/login`,{
+      method:"POST",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body: new URLSearchParams({username: email, password})
+    });
+    const data = await res.json();
+    if(!res.ok){ showAuthError("registerError", data.detail || "Sign in after register failed."); return; }
+    authToken   = data.access_token;
+    currentUser = data.user;
+    localStorage.setItem("ds_token", authToken);
+    enterApp();
+  }catch(e){
+    showAuthError("registerError","Account created but couldn't sign in automatically. Please sign in manually.");
+    document.getElementById("toLogin").click();
   }
 }
 
