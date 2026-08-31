@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DocuSense AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --esp:#1B140F; --esp-p:#241A13; --esp-r:#2E2117;
+  --bdr:#3D2C1F; --bdr-s:#4A3626;
+  --par:#EFE4D3; --par-d:#B3A08A;
+  --brs:#D4A94C; --brs-d:#A8823B;
+  --cgn:#B5652F; --cgn-l:#D68A52; --cgn-dp:#8A4A22;
+  --ok:#7CB88F; --err:#D97C6B;
+  --sans:'Inter',-apple-system,sans-serif;
+  --serif:'Fraunces',Georgia,serif;
+  --mono:'JetBrains Mono','Courier New',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--esp);background-image:radial-gradient(ellipse 900px 500px at 15% -10%,rgba(181,101,47,.08),transparent 60%),radial-gradient(ellipse 700px 400px at 100% 10%,rgba(212,169,76,.05),transparent 60%);color:var(--par);font-family:var(--sans);height:100vh;overflow:hidden}
+::selection{background:var(--cgn);color:#fff}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ── AUTH SCREEN ─────────────────────────────────────────── */
+#authScreen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--esp);background-image:radial-gradient(ellipse 800px 600px at 20% 20%,rgba(181,101,47,.1),transparent 60%),radial-gradient(ellipse 600px 400px at 80% 80%,rgba(212,169,76,.06),transparent 60%)}
+#authScreen.hidden{display:none}
+.auth-card{width:100%;max-width:400px;padding:40px 36px;background:var(--esp-p);border:1px solid var(--bdr);border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.auth-brand-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--brs),var(--cgn-dp));border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--esp);font-weight:700;font-family:var(--serif);font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.auth-brand-name{font-family:var(--serif);font-weight:600;font-size:19px;color:var(--par)}
+.auth-brand-tag{font-size:11px;color:var(--par-d);font-family:var(--mono)}
+.auth-title{font-family:var(--serif);font-size:20px;color:var(--par);margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--par-d);margin-bottom:24px;line-height:1.5}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-size:12px;font-weight:500;color:var(--par-d);margin-bottom:6px;font-family:var(--mono)}
+.auth-field input{width:100%;background:var(--esp-r);border:1px solid var(--bdr-s);color:var(--par);padding:11px 13px;border-radius:8px;font-size:13.5px;outline:none;font-family:var(--sans);transition:border-color .15s}
+.auth-field input::placeholder{color:var(--par-d)}
+.auth-field input:focus{border-color:var(--cgn-l)}
+.auth-field-pw{position:relative}
+.auth-field-pw input{padding-right:40px}
+.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--par-d);padding:8px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:color .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;z-index:2}
+.pw-toggle:hover{color:var(--par)}
+.pw-toggle svg{width:17px;height:17px;display:block}
+.pw-toggle .eye-off{display:none}
+.pw-toggle.showing .eye-on{display:none}
+.pw-toggle.showing .eye-off{display:block}
+.auth-btn{width:100%;background:linear-gradient(135deg,var(--brs),var(--cgn-dp));color:var(--esp);border:none;padding:12px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--sans);box-shadow:0 2px 12px rgba(138,74,34,.4);transition:filter .15s;margin-top:4px}
+.auth-btn:hover:not(:disabled){filter:brightness(1.1)}
+.auth-btn:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.auth-switch{text-align:center;margin-top:18px;font-size:12.5px;color:var(--par-d)}
+.auth-switch a{color:var(--brs);cursor:pointer;text-decoration:none;font-weight:500}
+.auth-switch a:hover{text-decoration:underline}
+.auth-error{background:rgba(217,124,107,.12);border:1px solid rgba(217,124,107,.4);color:var(--err);padding:10px 13px;border-radius:7px;font-size:12.5px;margin-bottom:14px;display:none;line-height:1.45}
+.auth-error.visible{display:block}
+.auth-success{background:rgba(124,184,143,.12);border:1px solid rgba(124,184,143,.4);color:var(--ok);padding:10px 13px;border-radius:7px;font-size:12.5px;margin-bottom:14px;display:none;line-height:1.45}
+.auth-success.visible{display:block}
+
+/* ── REMEMBER ME ─────────────────────────────────────────── */
+.auth-remember{display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer}
+.auth-remember input[type="checkbox"]{
+  width:15px;height:15px;cursor:pointer;
+  accent-color:var(--brs);
+  border-radius:3px;flex-shrink:0;
+}
+.auth-remember span{font-size:12.5px;color:var(--par-d);user-select:none}
+
+/* saved email chip shown on login form */
+.saved-email-chip{
+  display:flex;align-items:center;gap:8px;
+  background:var(--esp-r);border:1px solid var(--bdr-s);
+  border-radius:8px;padding:8px 12px;margin-bottom:12px;
+  font-size:13px;color:var(--par);
+}
+.saved-email-chip .chip-avatar{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--brs),var(--cgn-dp));
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--esp);font-family:var(--sans);
+}
+.saved-email-chip .chip-email{flex:1;font-family:var(--mono);font-size:12px;color:var(--par-d);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved-email-chip .chip-clear{background:none;border:none;color:var(--par-d);cursor:pointer;font-size:13px;padding:2px 4px;border-radius:3px;transition:color .15s;flex-shrink:0}
+.saved-email-chip .chip-clear:hover{color:var(--err)}
+/* ── END REMEMBER ME ─────────────────────────────────────── */
+
+/* ── END AUTH ─────────────────────────────────────────────── */
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--bdr);background:linear-gradient(180deg,var(--esp-p),var(--esp));flex-shrink:0}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--brs),var(--cgn-dp));border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--esp);font-weight:700;font-family:var(--serif);font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.brand-name{font-family:var(--serif);font-weight:600;font-size:17px;color:var(--par)}
+.brand-tag{color:var(--par-d);font-size:11px;font-family:var(--mono);margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.status-pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:20px;border:1px solid var(--bdr-s);color:var(--par-d);background:var(--esp-p)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--par-d)}
+.status-pill.on{color:var(--ok);border-color:var(--ok)}.status-pill.on .status-dot{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.status-pill.off{color:var(--err);border-color:var(--err)}.status-pill.off .status-dot{background:var(--err)}
+
+/* user menu */
+.user-btn{display:flex;align-items:center;gap:7px;background:var(--esp-r);border:1px solid var(--bdr-s);color:var(--par);padding:5px 11px;border-radius:20px;cursor:pointer;font-size:12px;font-family:var(--mono);transition:border-color .15s}
+.user-btn:hover{border-color:var(--brs)}
+.user-btn .uavatar{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,var(--brs),var(--cgn-dp));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--esp);font-family:var(--sans)}
+.user-menu{position:absolute;top:52px;right:16px;background:var(--esp-p);border:1px solid var(--bdr);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:50;min-width:180px;overflow:hidden;display:none}
+.user-menu.open{display:block}
+.user-menu-header{padding:12px 14px;border-bottom:1px solid var(--bdr)}
+.user-menu-name{font-size:13px;font-weight:600;color:var(--par)}
+.user-menu-email{font-size:11px;color:var(--par-d);font-family:var(--mono);margin-top:2px}
+.user-menu-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;cursor:pointer;transition:background .15s;color:var(--par-d)}
+.user-menu-item:hover{background:var(--esp-r);color:var(--par)}
+.user-menu-item.danger:hover{background:rgba(217,124,107,.1);color:var(--err)}
+
+/* tab strip */
+.doc-tabs{display:flex;align-items:stretch;background:var(--esp-p);border-bottom:1px solid var(--bdr);overflow-x:auto;flex-shrink:0;min-height:36px}
+.doc-tab{display:flex;align-items:center;gap:7px;padding:8px 11px;font-size:12px;color:var(--par-d);cursor:pointer;white-space:nowrap;border-right:1px solid var(--bdr);border-bottom:2px solid transparent;transition:color .15s,background .15s,border-color .15s;max-width:200px}
+.doc-tab:hover{color:var(--par);background:var(--esp-r)}
+.doc-tab.active{color:var(--brs);background:var(--esp-r);border-bottom-color:var(--brs)}
+.doc-tab-name{overflow:hidden;text-overflow:ellipsis}
+.doc-tab-close{font-size:13px;opacity:.5;padding:1px 4px;border-radius:3px;transition:opacity .15s,background .15s,color .15s;flex-shrink:0}
+.doc-tab-close:hover{opacity:1;background:var(--err);color:#fff}
+.doc-tab-add{justify-content:center;color:var(--par-d);font-size:17px;min-width:36px;flex-shrink:0;border-right:none}
+.doc-tab-add:hover{color:var(--brs);background:var(--esp-r)}
+
+/* main */
+.main{flex:1;display:flex;min-height:0;position:relative}
+.pane-left{width:58%;border-right:1px solid var(--bdr);display:flex;flex-direction:column;min-width:0;position:relative}
+.pane-right{width:42%;display:flex;flex-direction:column;min-width:0;background:var(--esp-p)}
+
+/* welcome */
+#welcomeScreen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--esp);z-index:10}
+#welcomeScreen.hidden{display:none}
+.welcome-inner{display:flex;flex-direction:column;align-items:center;padding:48px 40px;max-width:460px;width:100%;text-align:center}
+.welcome-icon{font-size:46px;margin-bottom:18px}
+.welcome-title{font-family:var(--serif);font-size:25px;color:var(--par);margin-bottom:8px}
+.welcome-sub{color:var(--par-d);font-size:13px;line-height:1.65;margin-bottom:28px}
+.welcome-drop{width:100%;border:2px dashed var(--bdr-s);border-radius:14px;padding:36px 24px;cursor:pointer;background:var(--esp-p);transition:border-color .18s,background .18s}
+.welcome-drop:hover,.welcome-drop.drag{border-color:var(--brs);background:var(--esp-r)}
+.welcome-drop .wd-icon{font-size:28px;margin-bottom:10px}
+.welcome-drop .wd-title{font-weight:600;font-size:14px;margin-bottom:5px}
+.welcome-drop .wd-sub{color:var(--par-d);font-size:12px}
+.upload-progress{margin-top:16px;font-size:12px;font-family:var(--mono);color:var(--brs);display:none;align-items:center;gap:8px}
+.upload-progress.visible{display:flex}
+
+/* drop overlay */
+#dropOverlay{display:none;position:absolute;inset:0;z-index:20;align-items:flex-start;justify-content:center;padding-top:60px}
+#dropOverlay.visible{display:flex}
+.overlay-backdrop{position:absolute;inset:0;background:rgba(27,20,15,.6);backdrop-filter:blur(3px)}
+.overlay-box{position:relative;z-index:1;background:rgba(46,33,23,.88);border:1.5px dashed var(--brs-d);border-radius:12px;padding:28px 32px;text-align:center;width:min(400px,90%);backdrop-filter:blur(6px);box-shadow:0 8px 32px rgba(0,0,0,.5);transition:border-color .18s}
+#dropOverlay.drag .overlay-box{border-color:var(--brs)}
+.ob-icon{font-size:26px;margin-bottom:10px}
+.ob-title{font-weight:600;font-size:14px;margin-bottom:5px}
+.ob-sub{color:var(--par-d);font-size:12px}
+.ob-cancel{margin-top:12px;font-size:11px;color:var(--par-d);cursor:pointer;font-family:var(--mono);transition:color .15s}
+.ob-cancel:hover{color:var(--par)}
+
+/* toolbar */
+.doc-toolbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bdr);font-family:var(--mono);font-size:12px;color:var(--par-d);flex-shrink:0;background:var(--esp-p)}
+#docName{color:var(--par);font-family:var(--sans);font-weight:500;font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-toolbar button{background:transparent;border:1px solid var(--bdr-s);color:var(--par);padding:4px 10px;border-radius:5px;cursor:pointer;font-family:var(--mono);font-size:11px;transition:border-color .15s,color .15s;white-space:nowrap}
+.doc-toolbar button:hover:not(:disabled){border-color:var(--brs);color:var(--brs)}
+.doc-toolbar button:disabled{opacity:.3;cursor:not-allowed}
+
+/* viewer */
+.viewer-scroll{flex:1;overflow-y:auto;overflow-x:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start;background:#120D09}
+#canvasWrap{position:relative;display:none;line-height:0}
+#pdf-canvas{box-shadow:0 8px 32px rgba(0,0,0,.5);border-radius:2px;display:block}
+#hl-canvas{position:absolute;top:0;left:0;pointer-events:none;border-radius:2px;z-index:2}
+#textLayer{position:absolute;top:0;left:0;z-index:3;overflow:hidden;line-height:1}
+#textLayer span{color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0 0}
+#textLayer span::selection{background:rgba(181,101,47,.45)}
+#textLayer span::-moz-selection{background:rgba(181,101,47,.45)}
+#img-view{max-width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5);border-radius:2px;display:none}
+.empty-state{color:var(--par-d);font-size:13px;text-align:center;margin-top:60px;width:100%}
+.empty-state .icon{font-size:24px;display:block;margin-bottom:10px;opacity:.5}
+
+/* citation jump toast */
+#citToast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--brs);color:var(--esp);font-family:var(--mono);font-size:12px;padding:7px 16px;border-radius:20px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:999}
+#citToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* right panel */
+.tabs{display:flex;border-bottom:1px solid var(--bdr);flex-shrink:0;padding:0 10px}
+.tab{padding:13px 15px;font-size:13px;color:var(--par-d);cursor:pointer;border-bottom:2px solid transparent;font-weight:500;transition:color .15s}
+.tab:hover{color:var(--par)}.tab.active{color:var(--brs);border-bottom-color:var(--brs)}
+.panel{flex:1;min-height:0;display:none;flex-direction:column}.panel.active{display:flex}
+
+/* chat */
+.chat-log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:92%;font-size:13.5px;line-height:1.6}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--cgn),var(--cgn-dp));color:#fff;padding:10px 14px;border-radius:12px 12px 3px 12px;box-shadow:0 2px 8px rgba(138,74,34,.3)}
+.msg.ai{align-self:flex-start;background:var(--esp-r);padding:11px 14px;border-radius:12px 12px 12px 3px;border:1px solid var(--bdr)}
+.msg.ai .text{white-space:pre-wrap}
+.citations{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.cit-btn{font-family:var(--mono);font-size:10.5px;background:#000;color:var(--brs);padding:2px 8px;border-radius:4px;border:1px solid var(--brs-d);cursor:pointer;transition:background .15s,color .15s}
+.cit-btn:hover{background:var(--brs);color:var(--esp)}
+.cit-btn.has-box{border-color:var(--brs);box-shadow:0 0 0 1px rgba(212,169,76,.25) inset}
+.chat-input{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--bdr);flex-shrink:0}
+.chat-input input{flex:1;background:var(--esp-r);border:1px solid var(--bdr-s);color:var(--par);padding:10px 13px;border-radius:8px;font-size:13px;outline:none;transition:border-color .15s;font-family:var(--sans)}
+.chat-input input::placeholder{color:var(--par-d)}
+.chat-input input:focus{border-color:var(--cgn-l)}
+.chat-input button{background:linear-gradient(135deg,var(--brs),var(--cgn-dp));color:var(--esp);border:none;padding:0 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;transition:filter .15s}
+.chat-input button:hover:not(:disabled){filter:brightness(1.1)}
+.chat-input button:disabled{opacity:.35;cursor:not-allowed;filter:none}
+
+/* summary */
+.summary-body{flex:1;overflow-y:auto;padding:18px;font-size:13.5px;line-height:1.65}
+.sum-section{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--bdr)}
+.sum-section:last-child{border-bottom:none}
+.sum-section h4{font-family:var(--serif);font-size:13.5px;color:var(--brs);margin-bottom:8px;font-weight:600}
+.sum-section ul{padding-left:0;list-style:none}
+.sum-section li{margin-bottom:7px;padding-left:16px;position:relative}
+.sum-section li::before{content:"—";position:absolute;left:0;color:var(--cgn-l)}
+.summarize-btn{margin:16px;background:linear-gradient(135deg,var(--cgn),var(--cgn-dp));color:#fff;border:none;padding:11px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13.5px;font-family:var(--sans);box-shadow:0 2px 10px rgba(138,74,34,.35);transition:filter .15s}
+.summarize-btn:hover:not(:disabled){filter:brightness(1.08)}
+.summarize-btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.summary-actions{display:flex;gap:10px;margin:16px 16px 0;flex-wrap:wrap}
+.summary-actions .summarize-btn{margin:0;flex:1;min-width:132px}
+.summarize-btn.ghost{background:transparent;color:var(--brs);border:1px solid var(--brs);box-shadow:none}
+.summarize-btn.ghost:hover:not(:disabled){filter:none;background:rgba(212,169,76,.12)}
+
+/* search bar */
+.search-bar{display:flex;align-items:center;gap:6px;padding:8px 16px;border-bottom:1px solid var(--bdr);background:var(--esp-p);flex-shrink:0}
+.search-bar input{flex:1;background:var(--esp-r);border:1px solid var(--bdr-s);color:var(--par);padding:6px 11px;border-radius:6px;font-size:12px;outline:none;font-family:var(--sans);transition:border-color .15s}
+.search-bar input:focus{border-color:var(--cgn-l)}
+.search-bar button{background:transparent;border:1px solid var(--bdr-s);color:var(--par-d);padding:5px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-family:var(--mono);transition:border-color .15s,color .15s}
+.search-bar button:hover{border-color:var(--brs);color:var(--brs)}
+#searchCount{font-size:11px;color:var(--par-d);font-family:var(--mono);white-space:nowrap}
+
+/* spinner */
+.spinner{width:13px;height:13px;border:2px solid var(--bdr-s);border-top-color:var(--brs);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* highlight toolbar */
+#highlightToolbar{position:fixed;z-index:200;display:none;align-items:center;gap:6px;background:var(--esp-p);border:1px solid var(--bdr);border-radius:8px;padding:6px 10px;box-shadow:0 6px 20px rgba(0,0,0,.5);font-size:12px;font-family:var(--mono)}
+#highlightToolbar.visible{display:flex}
+#highlightToolbar button{background:linear-gradient(135deg,var(--brs),var(--cgn-dp));color:var(--esp);border:none;padding:4px 11px;border-radius:5px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:filter .15s}
+#highlightToolbar button:hover{filter:brightness(1.12)}
+#highlightToolbar .ht-close{background:transparent;border:1px solid var(--bdr-s);color:var(--par-d);padding:4px 8px;border-radius:5px;cursor:pointer;font-size:11px;transition:border-color .15s,color .15s}
+#highlightToolbar .ht-close:hover{border-color:var(--err);color:var(--err)}
+#highlightExplain{position:fixed;z-index:199;bottom:0;right:0;width:42%;background:var(--esp-p);border-top:1px solid var(--bdr);border-left:1px solid var(--bdr);padding:14px 16px;font-size:13px;line-height:1.6;display:none;max-height:38vh;overflow-y:auto;white-space:pre-wrap;font-family:var(--sans)}
+#highlightExplain.visible{display:block}
+#highlightExplain .he-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+#highlightExplain .he-label{font-family:var(--mono);font-size:11px;color:var(--brs);font-weight:500}
+#highlightExplain .he-close{background:transparent;border:none;color:var(--par-d);cursor:pointer;font-size:14px;padding:0;transition:color .15s}
+#highlightExplain .he-close:hover{color:var(--err)}
+#highlightExplain .he-body{color:var(--par)}
+#highlightExplain .he-quote{font-family:var(--mono);font-size:11.5px;color:var(--par-d);border-left:2px solid var(--brs-d);padding-left:10px;margin-bottom:10px;line-height:1.5;white-space:pre-wrap}
+
+/* scrollbars */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr-s);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--cgn-dp)}
+
+/* ── MOBILE NAV BAR (bottom tab bar) ──────────────────────── */
+.mobile-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:56px;z-index:150;
+  background:var(--esp-p);
+  border-top:1px solid var(--bdr);
+  flex-direction:row;align-items:stretch;
+  box-shadow:0 -4px 24px rgba(0,0,0,.35);
+}
+.mobile-nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;background:none;border:none;cursor:pointer;
+  color:var(--par-d);font-size:10px;font-family:var(--mono);
+  transition:color .15s;padding:0;
+}
+.mobile-nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mobile-nav-btn.active{color:var(--brs)}
+.mobile-nav-btn.active svg{stroke:var(--brs)}
+
+/* ── MOBILE HEADER ────────────────────────────────────────── */
+@media(max-width:700px){
+  /* slim header */
+  header{padding:10px 14px}
+  .brand-tag{display:none}
+  .brand-name{font-size:15px}
+  .status-pill{font-size:10px;padding:4px 8px}
+  .status-pill span:last-child{display:none} /* hide text, keep dot */
+  .user-btn span:last-child{display:none}   /* hide name, keep avatar */
+
+  /* doc tabs — smaller */
+  .doc-tab{padding:6px 9px;font-size:11px;max-width:140px}
+
+  /* main layout: stack vertically */
+  body{overflow:hidden}
+  .main{flex-direction:column;overflow:hidden}
+
+  /* left pane is full-width; toggled by JS */
+  .pane-left{
+    width:100% !important;border-right:none;
+    border-bottom:1px solid var(--bdr);
+    flex:1;min-height:0;
+    transition:transform .25s ease;
+  }
+  .pane-right{
+    width:100% !important;
+    position:fixed;inset:0;bottom:56px;
+    z-index:100;
+    background:var(--esp-p);
+    transform:translateX(100%);
+    transition:transform .25s ease;
+    display:flex;flex-direction:column;
+  }
+  .pane-right.mobile-open{transform:translateX(0)}
+
+  /* toolbar compacted */
+  .doc-toolbar{padding:7px 10px;gap:6px;flex-wrap:nowrap;overflow-x:auto}
+  #docName{font-size:12px;max-width:90px}
+  .doc-toolbar button{padding:3px 7px;font-size:10px}
+
+  /* viewer padding */
+  .viewer-scroll{padding:10px}
+
+  /* highlight explain panel full-width at bottom */
+  #highlightExplain{width:100%;left:0;right:0;bottom:56px;border-left:none;max-height:45vh}
+
+  /* chat input padding above nav */
+  .chat-input{padding:10px 10px 10px}
+
+  /* summary actions */
+  .summary-actions{margin:10px 10px 0;gap:8px}
+  .summarize-btn{font-size:12.5px;padding:9px 10px}
+
+  /* welcome screen */
+  .welcome-inner{padding:32px 20px}
+  .welcome-title{font-size:21px}
+
+  /* auth card */
+  .auth-card{padding:28px 20px;border-radius:12px;max-width:100%;margin:16px}
+  #authScreen{align-items:flex-start;padding-top:40px}
+
+  /* bottom nav visible */
+  .mobile-nav{display:flex}
+
+  /* add padding at bottom so content not hidden by nav */
+  .pane-left{padding-bottom:56px}
+
+  /* user menu position */
+  .user-menu{top:48px;right:10px}
+
+  /* right panel tabs — slightly smaller */
+  .tab{padding:11px 12px;font-size:12px}
+
+  /* chat messages slightly smaller */
+  .msg{font-size:13px}
+  .chat-log{padding:12px}
+
+  /* highlight toolbar positions */
+  #highlightToolbar{font-size:11px}
+}
+
+/* Tablet — side-by-side but rebalanced */
+@media(min-width:701px) and (max-width:1024px){
+  .pane-left{width:52%}
+  .pane-right{width:48%}
+  header{padding:12px 18px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ AUTH SCREEN ═══════════════ -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-brand-mark">DS</div>
+      <div>
+        <div class="auth-brand-name">DocuSense AI</div>
+        <div class="auth-brand-tag">document intelligence</div>
+      </div>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div id="loginPanel">
+      <div class="auth-title">Sign in</div>
+      <div class="auth-sub">Continue to your document workspace.</div>
+      <div id="loginError" class="auth-error"></div>
+
+      <!-- Saved email chip — shown only when a remembered email exists -->
+      <div id="savedEmailChip" class="saved-email-chip" style="display:none">
+        <div class="chip-avatar" id="chipAvatar">?</div>
+        <span class="chip-email" id="chipEmail"></span>
+        <button class="chip-clear" id="chipClear" title="Forget this account">✕</button>
+      </div>
+
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <div class="auth-field-pw">
+          <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          <button type="button" class="pw-toggle" id="toggleLoginPw" aria-label="Show password">
+            <svg id="eyeOnLogin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eyeOffLogin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.6 20.6 0 0 1 5.06-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a20.6 20.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Remember me checkbox -->
+      <label class="auth-remember">
+        <input type="checkbox" id="rememberMe"/>
+        <span>Remember me on this device</span>
+      </label>
+
+      <button class="auth-btn" id="loginBtn">Sign in</button>
+      <p style="text-align:center;margin:10px 0 0;font-size:13px"><a href="#" id="toForgot" style="color:var(--brs);text-decoration:none;opacity:.85">Forgot password?</a></p>
+      <div class="auth-switch">No account? <a id="toRegister">Create one</a></div>
+    </div>
+
+    <!-- REGISTER PANEL -->
+    <div id="registerPanel" style="display:none">
+      <div class="auth-title">Create account</div>
+      <div class="auth-sub">Get started — it only takes a moment.</div>
+      <div id="registerError"  class="auth-error"></div>
+      <div id="registerSuccess" class="auth-success"></div>
+      <div class="auth-field">
+        <label>Full name</label>
+        <input id="regName" type="text" placeholder="Ada Lovelace" autocomplete="name"/>
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="regEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="auth-field">
+        <label>Password <span style="font-size:10px;opacity:.6">(8+ chars, letters, numbers, symbol)</span></label>
+        <div class="auth-field-pw">
+          <input id="regPassword" type="password" placeholder="e.g. MyPass1!" autocomplete="new-password"/>
+          <button type="button" class="pw-toggle" id="toggleRegPw" aria-label="Show password">
+            <svg id="eyeOnReg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg id="eyeOffReg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.6 20.6 0 0 1 5.06-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a20.6 20.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+          </button>
+        </div>
+      </div>
+      <button class="auth-btn" id="registerBtn">Create account</button>
+      <div class="auth-switch">Already have an account? <a id="toLogin">Sign in</a></div>
+    </div>
+  </div>
+</div>
+<!-- FORGOT PASSWORD PANEL -->
+<div id="forgotPanel" style="display:none;padding:0 32px 32px">
+  <div class="auth-title">Reset Password</div>
+  <div class="auth-sub">Enter your email and we'll send a reset link.</div>
+  <div id="forgotError" class="auth-error"></div>
+  <div id="forgotSuccess" class="auth-success"></div>
+  <div class="auth-field"><label>Email</label>
+    <input id="forgotEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+  </div>
+  <button class="auth-btn" id="forgotBtn">Send Reset Link</button>
+  <div class="auth-switch"><a id="backToLogin" style="cursor:pointer">← Back to Sign In</a></div>
+</div>
+
+<!-- RESET PASSWORD PANEL -->
+<div id="resetPanel" style="display:none;padding:0 32px 32px">
+  <div class="auth-title">New Password</div>
+  <div class="auth-sub">Choose a strong password for your account.</div>
+  <div id="resetError" class="auth-error"></div>
+  <div id="resetSuccess" class="auth-success"></div>
+  <div class="auth-field"><label>New Password</label>
+    <div class="auth-field-pw">
+      <input id="resetPassword" type="password" placeholder="Min 8 characters" autocomplete="new-password"/>
+      <button type="button" class="pw-toggle" id="toggleResetPw" aria-label="Show password">
+        <svg id="eyeOnReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg id="eyeOffReset" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.6 20.6 0 0 1 5.06-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 7 11 7a20.6 20.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+      </button>
+    </div>
+  </div>
+  <button class="auth-btn" id="resetBtn">Update Password</button>
+</div>
+
+<!-- ═══════════════ END AUTH ═══════════════════ -->
+
+<div class="app">
+<header>
+  <div class="brand">
+    <div class="brand-mark">DS</div>
+    <div>
+      <div class="brand-name">DocuSense AI</div>
+      <div class="brand-tag">document intelligence · grounded in the page</div>
+    </div>
+  </div>
+  <div class="hdr-right" style="position:relative">
+    <div id="status" class="status-pill"><span class="status-dot"></span><span id="statusText">checking…</span></div>
+    <button class="user-btn" id="userBtn" style="display:none">
+      <div class="uavatar" id="userAvatar">?</div>
+      <span id="userName">—</span>
+    </button>
+    <div class="user-menu" id="userMenu">
+      <div class="user-menu-header">
+        <div class="user-menu-name" id="menuName">—</div>
+        <div class="user-menu-email" id="menuEmail">—</div>
+      </div>
+      <div class="user-menu-item danger" id="signOutBtn">↩ Sign out</div>
+    </div>
+  </div>
+</header>
+
+<div id="docTabs" class="doc-tabs"></div>
+
+<div class="main">
+  <div class="pane-left">
+    <div id="welcomeScreen">
+      <div class="welcome-inner">
+        <div class="welcome-icon">📚</div>
+        <div class="welcome-title">DocuSense AI</div>
+        <div class="welcome-sub">Drop a PDF, TXT, DOCX, or image below to get started.<br>Ask questions, generate summaries, and jump to the exact cited region.</div>
+        <div id="welcomeDrop" class="welcome-drop">
+          <div class="wd-icon">📄</div>
+          <div class="wd-title">Drop your document here</div>
+          <div class="wd-sub">or click to browse — PDF, TXT, DOCX, PNG, JPG</div>
+        </div>
+        <div id="uploadProgress" class="upload-progress">
+          <span class="spinner"></span><span id="progressText">Uploading…</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="dropOverlay">
+      <div class="overlay-backdrop" id="overlayBackdrop"></div>
+      <div class="overlay-box" id="overlayBox">
+        <div class="ob-icon">📄</div>
+        <div class="ob-title">Add another document</div>
+        <div class="ob-sub">Drop here or click to browse</div>
+        <div class="ob-cancel" id="overlayCancel">cancel</div>
+      </div>
+    </div>
+
+    <div id="toolbar" class="doc-toolbar" style="display:none">
+      <span id="docName">—</span>
+      <button id="prevPage">‹</button>
+      <span id="pageIndicator" style="font-size:11px;white-space:nowrap">1/1</span>
+      <button id="nextPage">›</button>
+      <span style="width:1px;background:var(--bdr);align-self:stretch;margin:0 4px"></span>
+      <button id="zoomOut">−</button>
+      <span id="zoomLevel" style="font-size:11px;white-space:nowrap;min-width:32px;text-align:center">fit</span>
+      <button id="zoomIn">+</button>
+      <button id="zoomFit">fit</button>
+    </div>
+
+    <div id="searchBar" class="search-bar" style="display:none">
+      <input id="searchInput" type="text" placeholder="Search in document…"/>
+      <button id="searchPrev">↑</button>
+      <button id="searchNext">↓</button>
+      <span id="searchCount"></span>
+      <button id="searchClose">✕</button>
+    </div>
+
+    <div class="viewer-scroll" id="viewerScroll">
+      <div id="emptyViewer" class="empty-state" style="display:none"><span class="icon">📖</span>No document loaded</div>
+      <div id="canvasWrap">
+        <canvas id="pdf-canvas"></canvas>
+        <canvas id="hl-canvas"></canvas>
+        <div id="textLayer"></div>
+      </div>
+      <img id="img-view" alt="document"/>
+      <pre id="txt-view" style="display:none;white-space:pre-wrap;font-family:var(--mono);font-size:13px;color:var(--par);max-width:700px;"></pre>
+    </div>
+  </div>
+
+  <div class="pane-right">
+    <div class="tabs">
+      <div class="tab active" data-tab="chat">Chat</div>
+      <div class="tab" data-tab="summary">Summary</div>
+    </div>
+    <div class="panel active" id="panel-chat">
+      <div class="chat-log" id="chatLog">
+        <div class="empty-state"><span class="icon">💬</span>Upload a document, then ask it anything.</div>
+      </div>
+      <div class="chat-input">
+        <input id="chatInput" type="text" placeholder="Ask about this document…" disabled/>
+        <button id="sendBtn" disabled>Send</button>
+      </div>
+    </div>
+    <div class="panel" id="panel-summary">
+      <div class="summary-actions">
+        <button id="summarizeBtn" class="summarize-btn" disabled>Generate summary</button>
+        <button id="downloadSummaryBtn" class="summarize-btn ghost" disabled>⬇ Download PDF</button>
+      </div>
+      <div class="summary-body" id="summaryBody">
+        <div class="empty-state"><span class="icon">📋</span>No summary yet</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- highlight-to-explain toolbar -->
+<div id="highlightToolbar">
+  <button id="explainSelBtn">✦ Explain selection</button>
+  <button class="ht-close" id="dismissToolbar">✕</button>
+</div>
+<!-- explain panel -->
+<div id="highlightExplain">
+  <div class="he-header">
+    <span class="he-label">✦ AI explanation</span>
+    <button class="he-close" id="closeExplain">✕</button>
+  </div>
+  <div class="he-quote" id="explainQuote"></div>
+  <div class="he-body" id="explainBody"><span class="spinner"></span> Explaining…</div>
+</div>
+
+<!-- ── MOBILE BOTTOM NAV ── -->
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-btn active" id="mnavDoc" title="Document">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Doc
+  </button>
+  <button class="mobile-nav-btn" id="mnavChat" title="Chat">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Chat
+  </button>
+  <button class="mobile-nav-btn" id="mnavSummary" title="Summary">
+    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    Summary
+  </button>
+  <button class="mobile-nav-btn" id="mnavUpload" title="Upload">
+    <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+    Upload
+  </button>
+</nav>
+
+<div id="citToast">Jumped to page</div>
+<input type="file" id="fileInput" accept=".pdf,.txt,.docx,.png,.jpg,.jpeg" style="display:none"/>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const API = "https://docusense-xbnn.onrender.com";
+
+// ── token storage ─────────────────────────────────────────────────────────────
+let authToken = localStorage.getItem("ds_token") || null;
+let currentUser = null;
+
+// ── Remember Me helpers ───────────────────────────────────────────────────────
+const RM_KEY   = "ds_remembered_email";   // localStorage key for saved email
+
+function getSavedEmail(){ return localStorage.getItem(RM_KEY) || ""; }
+
+function saveEmail(email){
+  localStorage.setItem(RM_KEY, email);
+  renderSavedChip();
+}
+
+function clearSavedEmail(){
+  localStorage.removeItem(RM_KEY);
+  renderSavedChip();
+}
+
+/** Show/hide the remembered-email chip above the email field */
+function renderSavedChip(){
+  const email  = getSavedEmail();
+  const chip   = document.getElementById("savedEmailChip");
+  const chipEm = document.getElementById("chipEmail");
+  const chipAv = document.getElementById("chipAvatar");
+  if(email){
+    const initial = email[0].toUpperCase();
+    chipAv.textContent  = initial;
+    chipEm.textContent  = email;
+    chip.style.display  = "flex";
+    // pre-fill the email field and tick Remember Me
+    document.getElementById("loginEmail").value  = email;
+    document.getElementById("rememberMe").checked = true;
+  } else {
+    chip.style.display = "none";
+    document.getElementById("loginEmail").value   = "";
+    document.getElementById("rememberMe").checked = false;
+  }
+}
+
+// "✕" on the chip clears the saved email
+document.getElementById("chipClear").addEventListener("click", ()=>{
+  clearSavedEmail();
+  document.getElementById("loginEmail").value   = "";
+  document.getElementById("rememberMe").checked = false;
+});
+
+// ── utilities ─────────────────────────────────────────────────────────────────
+function authHeaders(){
+  return authToken
+    ? {"Authorization": `Bearer ${authToken}`, "Content-Type": "application/json"}
+    : {"Content-Type": "application/json"};
+}
+
+async function apiFetch(url, opts = {}){
+  if(!opts.headers) opts.headers = {};
+  if(authToken) opts.headers["Authorization"] = `Bearer ${authToken}`;
+  const res = await fetch(url, opts);
+  if(res.status === 401){ signOut(); throw new Error("Session expired — please sign in again"); }
+  return res;
+}
+
+function esc(s){ const d=document.createElement("div"); d.textContent=s??""; return d.innerHTML; }
+function toast(msg){ const t=document.getElementById("citToast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
+
+// ── auth screen logic ─────────────────────────────────────────────────────────
+const authScreen    = document.getElementById("authScreen");
+const loginPanel    = document.getElementById("loginPanel");
+const registerPanel = document.getElementById("registerPanel");
+
+function showPanel(name){
+  loginPanel.style.display    = name==="login"    ? "block" : "none";
+  registerPanel.style.display = name==="register" ? "block" : "none";
+  document.getElementById("forgotPanel").style.display = name==="forgot" ? "block" : "none";
+  document.getElementById("resetPanel").style.display  = name==="reset"  ? "block" : "none";
+  clearAuthMessages();
+}
+document.getElementById("toRegister").addEventListener("click", ()=> showPanel("register"));
+(function(){ const t=new URLSearchParams(window.location.search).get("token"); if(t) showPanel("reset"); })();
+document.getElementById("toLogin").addEventListener("click", ()=>{
+  registerPanel.style.display="none"; loginPanel.style.display="block";
+  clearAuthMessages();
+});
+
+function clearAuthMessages(){
+  ["loginError","registerError","registerSuccess","forgotError","forgotSuccess","resetError","resetSuccess"].forEach(id=>{
+    const el=document.getElementById(id); if(el){ el.classList.remove("visible"); el.textContent=""; }
+  });
+}
+function showAuthError(panelId, msg){
+  const el=document.getElementById(panelId); el.textContent=msg; el.classList.add("visible");
+}
+
+// PASSWORD SHOW/HIDE TOGGLE
+function setupPwToggle(btnId, inputId, eyeOnId, eyeOffId){
+  const btn   = document.getElementById(btnId);
+  const input = document.getElementById(inputId);
+  const eyeOn  = document.getElementById(eyeOnId);
+  const eyeOff = document.getElementById(eyeOffId);
+  if(!btn || !input) return;
+  btn.addEventListener("click", function(e){
+    e.preventDefault();
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    eyeOn.style.display  = show ? "none"  : "block";
+    eyeOff.style.display = show ? "block" : "none";
+    this.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    input.focus();
+    const v = input.value; input.setSelectionRange(v.length, v.length);
+  });
+}
+setupPwToggle("toggleLoginPw","loginPassword","eyeOnLogin","eyeOffLogin");
+setupPwToggle("toggleRegPw","regPassword","eyeOnReg","eyeOffReg");
+
+// LOGIN
+document.getElementById("loginBtn").addEventListener("click", doLogin);
+document.getElementById("toForgot").addEventListener("click", (e)=>{ e.preventDefault(); showPanel("forgot"); });
+document.getElementById("backToLogin").addEventListener("click", ()=> showPanel("login"));
+document.getElementById("forgotBtn").addEventListener("click", doForgotPassword);
+document.getElementById("resetBtn").addEventListener("click", doResetPassword);
+setupPwToggle("toggleResetPw","resetPassword","eyeOnReset","eyeOffReset");
+document.getElementById("loginPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+async function doLogin(){
+  const email    = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const remember = document.getElementById("rememberMe").checked;
+  clearAuthMessages();
+  if(!email || !password){ showAuthError("loginError","Please enter your email and password."); return; }
+  const btn = document.getElementById("loginBtn");
+  btn.disabled=true; btn.textContent="Signing in…";
+  try{
+    const res = await fetch(`${API}/api/auth/login`,{
+      method:"POST",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body: new URLSearchParams({username: email, password})
+    });
+    const data = await res.json();
+    if(!res.ok){ showAuthError("loginError", data.detail || "Sign in failed."); return; }
+    authToken   = data.access_token;
+    currentUser = data.user;
+    localStorage.setItem("ds_token", authToken);
+
+    // ── Remember Me: save or clear the email based on checkbox ──
+    if(remember){
+      saveEmail(email);
+    } else {
+      clearSavedEmail();
+    }
+
+    // clear the password from the DOM now that it's no longer needed
+    document.getElementById("loginPassword").value = "";
+
+    enterApp();
+  }catch(e){
+    showAuthError("loginError","Cannot reach the backend. Is it running?");
+  } finally {
+    btn.disabled=false; btn.textContent="Sign in";
+  }
+}
+
+// REGISTER
+document.getElementById("registerBtn").addEventListener("click", doRegister);
+document.getElementById("regPassword").addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+
+// panel helpers now use showPanel() defined below
+function _unused_showLoginPanel(){
+  document.getElementById("loginPanel").style.display="";
+  document.getElementById("registerPanel").style.display="none";
+  document.getElementById("forgotPanel").style.display="none";
+  document.getElementById("resetPanel").style.display="none";
+}
+function showForgotPanel(){
+  document.getElementById("loginPanel").style.display="none";
+  document.getElementById("registerPanel").style.display="none";
+  document.getElementById("forgotPanel").style.display="";
+  document.getElementById("resetPanel").style.display="none";
+}
+async function doForgotPassword(){
+  const email = document.getElementById("forgotEmail").value.trim();
+  document.getElementById("forgotError").classList.remove("visible");
+  document.getElementById("forgotSuccess").classList.remove("visible");
+  if(!email){ showAuthError("forgotError","Please enter your email."); return; }
+  const btn = document.getElementById("forgotBtn");
+  btn.disabled=true; btn.textContent="Sending…";
+  try{
+    const res = await fetch(`${API}/api/auth/forgot-password`,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({email})
+    });
+    const data = await res.json();
+    if(!res.ok){ showAuthError("forgotError", data.detail || "Something went wrong. Please try again."); return; }
+    const s = document.getElementById("forgotSuccess");
+    s.textContent = data.message || "Reset link sent! Check your inbox.";
+    s.classList.add("visible");
+  }catch(e){
+    showAuthError("forgotError","Cannot reach the backend. Is it running?");
+  } finally {
+    btn.disabled=false; btn.textContent="Send Reset Link";
+  }
+}
+async function doResetPassword(){
+  const token = new URLSearchParams(window.location.search).get("token");
+  const pw    = document.getElementById("resetPassword").value;
+  document.getElementById("resetError").classList.remove("visible");
+  document.getElementById("resetSuccess").classList.remove("visible");
+  if(!token){ showAuthError("resetError","Missing or invalid reset link."); return; }
+  if(!pw){ showAuthError("resetError","Please enter a new password."); return; }
+  const btn = document.getElementById("resetBtn");
+  btn.disabled=true; btn.textContent="Updating…";
+  try{
+    const res = await fetch(`${API}/api/auth/reset-password`,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({token, new_password: pw})
+    });
+    const data = await res.json();
+    if(!res.ok){ showAuthError("resetError", data.detail || "Reset failed."); return; }
+    const s = document.getElementById("resetSuccess");
+    s.textContent = (data.message || "Password updated.") + " Redirecting to login...";
+    s.classList.add("visible");
+    setTimeout(()=>{ window.location.href = "/app"; }, 2000);
+  }catch(e){
+    showAuthError("resetError","Cannot reach the backend. Is it running?");
+  } finally {
+    btn.disabled=false; btn.textContent="Update Password";
+  }
+}
+// Check URL for reset token on load
+// reset token check handled in showPanel init above
+
+async function doLoginWithCredentials(email, password){
+  try{
+    const res = await fetch(`${API}/api/auth/login`,{
+      method:"POST",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body: new URLSearchParams({username: email, password})
+    });
+    const data = await res.json();
+    if(!res.ok){ showAuthError("registerError", data.detail || "Sign in after register failed."); return; }
+    authToken   = data.access_token;
+    currentUser = data.user;
+    localStorage.setItem("ds_token", authToken);
+    enterApp();
+  }catch(e){
+    showAuthError("registerError","Account created but couldn't sign in automatically. Please sign in manually.");
+    document.getElementById("toLogin").click();
+  }
+}
+
+async function doRegister(){
+  const name     = document.getElementById("regName").value.trim();
+  const email    = document.getElementById("regEmail").value.trim();
+  const password = document.getElementById("regPassword").value;
+  clearAuthMessages();
+  if(!name || !email || !password){ showAuthError("registerError","All fields are required."); return; }
+  if(password.length < 8){ showAuthError("registerError","Password must be at least 8 characters."); return; }
+  if(!/[A-Za-z]/.test(password)){ showAuthError("registerError","Password must contain at least one letter."); return; }
+  if(!/[0-9]/.test(password)){ showAuthError("registerError","Password must contain at least one number."); return; }
+  if(!/[^A-Za-z0-9]/.test(password)){ showAuthError("registerError","Password must contain at least one special character (e.g. !@#$%)."); return; }
+  const btn = document.getElementById("registerBtn");
+  btn.disabled=true; btn.textContent="Creating account…";
+  try{
+    const res = await fetch(`${API}/api/auth/register`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({name, email, password})
+    });
+    const data = await res.json();
+    if(!res.ok){ showAuthError("registerError", data.detail || "Registration failed."); return; }
+    const s = document.getElementById("registerSuccess");
+    s.textContent = "Account created! Signing you in…"; s.classList.add("visible");
+    // Auto-login directly instead of relying on DOM field injection
+    setTimeout(()=> doLoginWithCredentials(email, password), 800);
+  }catch(e){
+    showAuthError("registerError","Cannot reach the backend. Is it running?");
+  } finally {
+    btn.disabled=false; btn.textContent="Create account";
+  }
+}
+
+// ── enter app after successful auth ──────────────────────────────────────────
+async function enterApp(){
+  authScreen.classList.add("hidden");
+  if(!currentUser && authToken){
+    try{
+      const res = await apiFetch(`${API}/api/auth/me`);
+      if(res.ok) currentUser = await res.json();
+      else { signOut(); return; }
+    }catch{ signOut(); return; }
+  }
+  const initials = currentUser.name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+  document.getElementById("userAvatar").textContent = initials;
+  document.getElementById("userName").textContent   = currentUser.name.split(" ")[0];
+  document.getElementById("menuName").textContent   = currentUser.name;
+  document.getElementById("menuEmail").textContent  = currentUser.email;
+  document.getElementById("userBtn").style.display  = "flex";
+  checkHealth();
+  setInterval(checkHealth, 8000);
+  initialLoad();
+}
+
+function signOut(){
+  authToken   = null;
+  currentUser = null;
+  localStorage.removeItem("ds_token");
+  docs=[]; docId=null; pdfDoc=null; activeHL=null;
+  document.getElementById("userBtn").style.display="none";
+  document.getElementById("userMenu").classList.remove("open");
+  authScreen.classList.remove("hidden");
+  loginPanel.style.display="block"; registerPanel.style.display="none";
+  clearAuthMessages();
+  // never leave a password sitting in the DOM after sign-out
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("regPassword").value   = "";
+  // clear any leftover highlight-to-explain state so it doesn't float over the login screen
+  hlToolbar.classList.remove("visible");
+  hlExplain.classList.remove("visible");
+  lastSelection = "";
+  // restore saved email chip on the login screen after sign-out
+  renderSavedChip();
+  showWelcome(); renderTabs();
+}
+
+// user menu toggle
+document.getElementById("userBtn").addEventListener("click", e=>{
+  e.stopPropagation();
+  document.getElementById("userMenu").classList.toggle("open");
+});
+document.addEventListener("click", ()=> document.getElementById("userMenu").classList.remove("open"));
+document.getElementById("signOutBtn").addEventListener("click", signOut);
+
+// ── health ────────────────────────────────────────────────────────────────────
+async function checkHealth(){
+  const el=document.getElementById("status"), tx=document.getElementById("statusText");
+  try{
+    const r=await fetch(`${API}/health`);
+    if(!r.ok) throw 0;
+    let mode="";
+    try{ const j=await r.json(); mode=j.embeddings; }catch{}
+    tx.textContent = mode==="local" ? "backend · vector search"
+                   : mode==="keyword" ? "backend · keyword search"
+                   : "backend online";
+    el.className="status-pill on";
+  }
+  catch{ tx.textContent="backend offline"; el.className="status-pill off"; }
+}
+
+// ── right panel tabs ──────────────────────────────────────────────────────────
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(`panel-${t.dataset.tab}`).classList.add("active");
+}));
+
+// ── state ─────────────────────────────────────────────────────────────────────
+let docId=null, pdfDoc=null, curPage=1;
+let docs=[], chatHistories={}, summaryCache={};
+let activeHL=null;
+
+// ── doc tab strip ─────────────────────────────────────────────────────────────
+const docTabsEl=document.getElementById("docTabs");
+function renderTabs(){
+  docTabsEl.innerHTML="";
+  if(!docs.length) return;
+  docs.forEach(doc=>{
+    const tab=document.createElement("div");
+    tab.className="doc-tab"+(doc.id===docId?" active":"");
+    tab.title=doc.name;
+    const nm=document.createElement("span"); nm.className="doc-tab-name"; nm.textContent=doc.name;
+    nm.addEventListener("click",()=>openDocument(doc.id));
+    const cl=document.createElement("span"); cl.className="doc-tab-close"; cl.textContent="×";
+    cl.addEventListener("click",e=>{e.stopPropagation();closeDocument(doc.id);});
+    tab.append(nm,cl); docTabsEl.appendChild(tab);
+  });
+  const add=document.createElement("div"); add.className="doc-tab doc-tab-add"; add.title="Add document"; add.textContent="+";
+  add.addEventListener("click",showOverlay); docTabsEl.appendChild(add);
+}
+
+// ── welcome / empty ───────────────────────────────────────────────────────────
+function hideAllViewers(){
+  document.getElementById("canvasWrap").style.display="none";
+  document.getElementById("img-view").style.display="none";
+  document.getElementById("txt-view").style.display="none";
+  const _tl=document.getElementById("textLayer"); if(_tl) _tl.innerHTML="";
+}
+function showWelcome(){
+  document.getElementById("welcomeScreen").classList.remove("hidden");
+  document.getElementById("toolbar").style.display="none";
+  document.getElementById("searchBar").style.display="none";
+  hideAllViewers();
+  document.getElementById("emptyViewer").style.display="none";
+  document.getElementById("chatInput").disabled=true;
+  document.getElementById("sendBtn").disabled=true;
+  document.getElementById("summarizeBtn").disabled=true;
+  document.getElementById("downloadSummaryBtn").disabled=true;
+  document.getElementById("chatLog").innerHTML=`<div class="empty-state"><span class="icon">💬</span>Upload a document, then ask it anything.</div>`;
+  document.getElementById("summaryBody").innerHTML=`<div class="empty-state"><span class="icon">📋</span>No summary yet</div>`;
+}
+function hideWelcome(){ document.getElementById("welcomeScreen").classList.add("hidden"); }
+
+// ── overlay ───────────────────────────────────────────────────────────────────
+const dropOverlay=document.getElementById("dropOverlay");
+function showOverlay(){ dropOverlay.classList.add("visible"); }
+function hideOverlay(){ dropOverlay.classList.remove("visible","drag"); }
+document.getElementById("overlayCancel").addEventListener("click",hideOverlay);
+document.getElementById("overlayBackdrop").addEventListener("click",hideOverlay);
+dropOverlay.addEventListener("dragover",e=>{e.preventDefault();dropOverlay.classList.add("drag");});
+dropOverlay.addEventListener("dragleave",e=>{if(!dropOverlay.contains(e.relatedTarget))dropOverlay.classList.remove("drag");});
+dropOverlay.addEventListener("drop",e=>{e.preventDefault();hideOverlay();if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});
+document.getElementById("overlayBox").addEventListener("click",e=>{if(e.target.id!=="overlayCancel")fileInput.click();});
+
+// ── welcome drop ──────────────────────────────────────────────────────────────
+const wd=document.getElementById("welcomeDrop");
+wd.addEventListener("click",()=>fileInput.click());
+wd.addEventListener("dragover",e=>{e.preventDefault();wd.classList.add("drag");});
+wd.addEventListener("dragleave",()=>wd.classList.remove("drag"));
+wd.addEventListener("drop",e=>{e.preventDefault();wd.classList.remove("drag");if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0]);});
+
+const fileInput=document.getElementById("fileInput");
+fileInput.addEventListener("change",()=>{if(fileInput.files.length)handleFile(fileInput.files[0]);fileInput.value="";});
+
+// ── upload ────────────────────────────────────────────────────────────────────
+async function handleFile(file){
+  const prog=document.getElementById("uploadProgress"), tx=document.getElementById("progressText");
+  prog.classList.add("visible"); tx.textContent="Uploading & indexing…";
+  const form=new FormData(); form.append("file",file);
+  try{
+    const res=await apiFetch(`${API}/api/documents`,{method:"POST",body:form});
+    if(!res.ok){
+      let msg; try{ msg=(await res.json()).detail; }catch{ msg=await res.text(); }
+      throw new Error(msg||`HTTP ${res.status}`);
+    }
+    const data=await res.json();
+    docs=docs.filter(d=>d.id!==data.id); docs.unshift(data);
+    chatHistories[data.id]=[]; summaryCache[data.id]=null;
+    hideWelcome(); renderTabs(); await openDocument(data.id);
+    fetchCachedSummary(data.id);
+  }catch(err){ tx.textContent="Upload failed — "+err.message; console.error(err); }
+  finally{ setTimeout(()=>prog.classList.remove("visible"),err_delay(prog)); }
+}
+function err_delay(prog){ return prog.querySelector("#progressText")?.textContent.startsWith("Upload failed")?4000:0; }
+
+// ── open / close document ─────────────────────────────────────────────────────
+async function openDocument(id){
+  const doc=docs.find(d=>d.id===id); if(!doc) return;
+  docId=id; activeHL=null; renderTabs(); hideWelcome(); hideOverlay();
+  document.getElementById("docName").textContent=doc.name;
+  document.getElementById("toolbar").style.display="flex";
+  document.getElementById("chatInput").disabled=false;
+  document.getElementById("sendBtn").disabled=false;
+  document.getElementById("summarizeBtn").disabled=false;
+  document.getElementById("emptyViewer").style.display="none";
+
+  const cl=document.getElementById("chatLog"); cl.innerHTML="";
+  try{
+    const r=await apiFetch(`${API}/api/chat/${id}/history`);
+    const hist=r.ok?await r.json():[];
+    chatHistories[id]=hist.map(m=>({role:m.role,content:m.content,citations:m.citations||[]}));
+    if(!hist.length){
+      cl.innerHTML=`<div class="empty-state"><span class="icon">💬</span>Ask anything about this document.</div>`;
+    } else {
+      hist.forEach(m=>{
+        const w=addMsg(m.role==="assistant"?"ai":"user",m.content,false);
+        if(m.role==="assistant" && m.citations && m.citations.length) addCitations(w,m.citations);
+      });
+    }
+  }catch{ cl.innerHTML=`<div class="empty-state"><span class="icon">💬</span>Ask anything about this document.</div>`; }
+
+  if(summaryCache[id]) renderSummary(summaryCache[id]);
+  else { document.getElementById("downloadSummaryBtn").disabled=true; document.getElementById("summaryBody").innerHTML=`<div class="empty-state"><span class="icon">📋</span>No summary yet</div>`; fetchCachedSummary(id); }
+
+  const lower=doc.name.toLowerCase();
+  try{
+    const fr=await apiFetch(`${API}/api/documents/${id}/content`);
+    if(!fr.ok) throw 0;
+    if(lower.endsWith(".pdf")){
+      const buf=await fr.arrayBuffer();
+      pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+      curPage=1;
+      hideAllViewers();
+      document.getElementById("canvasWrap").style.display="block";
+      document.getElementById("searchBar").style.display="flex";
+      await renderPage(curPage);
+    } else if(/\.(png|jpe?g)$/.test(lower)){
+      pdfDoc=null;
+      hideAllViewers();
+      document.getElementById("searchBar").style.display="none";
+      const blob=await fr.blob();
+      const iv=document.getElementById("img-view");
+      iv.src=URL.createObjectURL(blob); iv.style.display="block";
+      document.getElementById("pageIndicator").textContent="1/1";
+    } else if(lower.endsWith(".docx") || lower.endsWith(".doc")){
+      pdfDoc=null;
+      hideAllViewers();
+      document.getElementById("searchBar").style.display="none";
+      let extracted="";
+      try{
+        const raw=await fr.text();
+        const nonPrint=(raw.match(/[ ---]/g)||[]).length;
+        if(nonPrint/raw.length<0.1) extracted=raw;
+      }catch{}
+      const tv=document.getElementById("txt-view");
+      if(extracted && extracted.trim().length>20){
+        tv.style.whiteSpace="pre-wrap"; tv.textContent=extracted; tv.style.display="block";
+      } else {
+        tv.style.whiteSpace="normal";
+        tv.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:48px 24px;text-align:center;">
+          <span style="font-size:42px">📝</span>
+          <div style="font-family:var(--serif);font-size:18px;color:var(--par);font-weight:600">Word Document</div>
+          <div style="font-size:13px;line-height:1.7;color:var(--par-d);max-width:280px">
+            Visual preview isn't available for .docx files, but the content has been indexed and is ready to query.
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;justify-content:center">
+            <div style="background:var(--esp-r);border:1px solid var(--bdr);border-radius:8px;padding:10px 16px;font-size:12.5px;color:var(--brs)">💬 Ask questions in Chat</div>
+            <div style="background:var(--esp-r);border:1px solid var(--bdr);border-radius:8px;padding:10px 16px;font-size:12.5px;color:var(--brs)">📋 Generate a Summary</div>
+          </div>
+        </div>`;
+        tv.style.display="block";
+      }
+      document.getElementById("pageIndicator").textContent="1/1";
+    } else {
+      pdfDoc=null;
+      hideAllViewers();
+      document.getElementById("searchBar").style.display="none";
+      const tv=document.getElementById("txt-view");
+      tv.style.whiteSpace="pre-wrap"; tv.textContent=await fr.text(); tv.style.display="block";
+      document.getElementById("pageIndicator").textContent="1/1";
+    }
+  }catch(e){ console.error(e); }
+}
+
+async function closeDocument(id){
+  const doc = docs.find(d=>d.id===id);
+  const name = doc ? doc.name : "this document";
+  if(!confirm(`Remove "${name}" from your library?\n\nThis will permanently delete the document and its chat history.`)) return;
+  try{ await apiFetch(`${API}/api/documents/${id}`,{method:"DELETE"}); }catch{}
+  delete chatHistories[id]; delete summaryCache[id];
+  docs=docs.filter(d=>d.id!==id);
+  if(docId===id){ docId=null; pdfDoc=null; activeHL=null; hideAllViewers(); document.getElementById("searchBar").style.display="none"; }
+  if(!docs.length){ showWelcome(); renderTabs(); }
+  else if(docId===null){ renderTabs(); await openDocument(docs[0].id); }
+  else renderTabs();
+}
+
+async function initialLoad(){
+  try{
+    const r=await apiFetch(`${API}/api/documents`);
+    if(r.ok){ docs=await r.json(); if(docs.length){ renderTabs(); await openDocument(docs[0].id); return; } }
+  }catch{}
+  showWelcome(); renderTabs();
+}
+
+async function fetchCachedSummary(id){
+  try{
+    const r=await apiFetch(`${API}/api/summary/${id}`);
+    if(r.ok){ const d=await r.json(); summaryCache[id]=d; if(id===docId) renderSummary(d); }
+  }catch{}
+}
+
+// ── PDF rendering ─────────────────────────────────────────────────────────────
+async function renderPage(num){
+  if(!pdfDoc) return;
+  const page=await pdfDoc.getPage(num);
+  const canvas=document.getElementById("pdf-canvas"), ctx=canvas.getContext("2d");
+  const avail=canvas.parentElement.parentElement.clientWidth-32;
+  const us=page.getViewport({scale:1});
+  const fitScale=Math.max(1.4,avail/us.width);
+  const scale=zoomScale??fitScale;
+  const vp=page.getViewport({scale});
+  canvas.width=vp.width; canvas.height=vp.height;
+  await page.render({canvasContext:ctx,viewport:vp}).promise;
+  document.getElementById("pageIndicator").textContent=`${num}/${pdfDoc.numPages}`;
+  drawHighlights(num);
+  await renderTextLayerFor(page, vp);
+  if(typeof updateZoomLabel==="function") updateZoomLabel();
+}
+
+async function renderTextLayerFor(page, vp){
+  const tl=document.getElementById("textLayer");
+  if(!tl) return;
+  tl.innerHTML="";
+  tl.style.width=vp.width+"px";
+  tl.style.height=vp.height+"px";
+  let tc;
+  try{ tc=await page.getTextContent(); }
+  catch(e){ console.warn("getTextContent failed",e); return; }
+  const frag=document.createDocumentFragment();
+  for(const item of tc.items){
+    if(!item.str) continue;
+    const tx=pdfjsLib.Util.transform(vp.transform,item.transform);
+    const fontHeight=Math.hypot(tx[2],tx[3]);
+    if(!fontHeight) continue;
+    const span=document.createElement("span");
+    span.textContent=item.str;
+    span.style.left=tx[4]+"px";
+    span.style.top=(tx[5]-fontHeight)+"px";
+    span.style.fontSize=fontHeight+"px";
+    span.style.fontFamily="sans-serif";
+    frag.appendChild(span);
+  }
+  tl.appendChild(frag);
+}
+
+function drawHighlights(num){
+  const pc=document.getElementById("pdf-canvas");
+  const hc=document.getElementById("hl-canvas");
+  hc.width=pc.width; hc.height=pc.height;
+  const ctx=hc.getContext("2d");
+  ctx.clearRect(0,0,hc.width,hc.height);
+  if(!activeHL || activeHL.page!==num || !activeHL.boxes || !activeHL.boxes.length) return;
+  ctx.save();
+  activeHL.boxes.forEach(b=>{
+    if(!b || b.length<4) return;
+    const x=b[0]*hc.width, y=b[1]*hc.height;
+    const w=(b[2]-b[0])*hc.width, h=(b[3]-b[1])*hc.height;
+    ctx.fillStyle="rgba(212,169,76,0.24)";
+    ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle="rgba(212,169,76,0.95)";
+    ctx.lineWidth=2;
+    ctx.strokeRect(x,y,w,h);
+  });
+  ctx.restore();
+}
+
+function jumpToPage(n){
+  if(!pdfDoc) return;
+  n=Math.max(1,Math.min(n,pdfDoc.numPages));
+  curPage=n; renderPage(n);
+  toast(`Jumped to page ${n}`);
+  document.getElementById("viewerScroll").scrollTop=0;
+}
+
+document.getElementById("prevPage").addEventListener("click",()=>{ if(pdfDoc&&curPage>1){curPage--;renderPage(curPage);} });
+document.getElementById("nextPage").addEventListener("click",()=>{ if(pdfDoc&&curPage<pdfDoc.numPages){curPage++;renderPage(curPage);} });
+
+let zoomScale=null;
+const ZOOM_STEP=0.2, ZOOM_MIN=0.4, ZOOM_MAX=4.0;
+
+function updateZoomLabel(){
+  document.getElementById("zoomLevel").textContent=zoomScale===null?"fit":Math.round(zoomScale*100)+"%";
+}
+
+document.getElementById("zoomIn").addEventListener("click",async()=>{
+  if(!pdfDoc) return;
+  const page=await pdfDoc.getPage(curPage);
+  const avail=document.getElementById("canvasWrap").parentElement.clientWidth-32;
+  const base=page.getViewport({scale:1}).width;
+  const cur=zoomScale??Math.max(1.4,avail/base);
+  zoomScale=Math.min(ZOOM_MAX,+(cur+ZOOM_STEP).toFixed(2)); renderPage(curPage);
+});
+document.getElementById("zoomOut").addEventListener("click",async()=>{
+  if(!pdfDoc) return;
+  const page=await pdfDoc.getPage(curPage);
+  const avail=document.getElementById("canvasWrap").parentElement.clientWidth-32;
+  const base=page.getViewport({scale:1}).width;
+  const cur=zoomScale??Math.max(1.4,avail/base);
+  zoomScale=Math.max(ZOOM_MIN,+(cur-ZOOM_STEP).toFixed(2)); renderPage(curPage);
+});
+document.getElementById("zoomFit").addEventListener("click",()=>{ if(!pdfDoc) return; zoomScale=null; renderPage(curPage); });
+
+// ── in-document search ────────────────────────────────────────────────────────
+let searchMatches=[], searchIdx=0;
+document.getElementById("searchInput").addEventListener("input",doSearch);
+document.getElementById("searchNext").addEventListener("click",()=>{ if(searchMatches.length){searchIdx=(searchIdx+1)%searchMatches.length;highlightSearch();} });
+document.getElementById("searchPrev").addEventListener("click",()=>{ if(searchMatches.length){searchIdx=(searchIdx-1+searchMatches.length)%searchMatches.length;highlightSearch();} });
+document.getElementById("searchClose").addEventListener("click",()=>{ document.getElementById("searchInput").value=""; searchMatches=[]; document.getElementById("searchCount").textContent=""; });
+function doSearch(){
+  const q=document.getElementById("searchInput").value.trim().toLowerCase(), tv=document.getElementById("txt-view");
+  if(!q||!tv.textContent){ searchMatches=[]; document.getElementById("searchCount").textContent=""; return; }
+  const text=tv.textContent.toLowerCase(); searchMatches=[]; let p=0;
+  while((p=text.indexOf(q,p))!==-1){searchMatches.push(p);p+=q.length;}
+  searchIdx=0; document.getElementById("searchCount").textContent=searchMatches.length?`${searchIdx+1}/${searchMatches.length}`:"0 found";
+  highlightSearch();
+}
+function highlightSearch(){
+  const q=document.getElementById("searchInput").value.trim();
+  if(!q||!searchMatches.length) return;
+  document.getElementById("searchCount").textContent=`${searchIdx+1}/${searchMatches.length}`;
+}
+
+// ── chat ──────────────────────────────────────────────────────────────────────
+const chatLog=document.getElementById("chatLog"), chatInput=document.getElementById("chatInput"), sendBtn=document.getElementById("sendBtn");
+
+function addMsg(role, text, record=true){
+  const empty=chatLog.querySelector(".empty-state"); if(empty) empty.remove();
+  const wrap=document.createElement("div"); wrap.className=`msg ${role}`;
+  const textEl=document.createElement("div"); textEl.className="text"; textEl.textContent=text;
+  wrap.appendChild(textEl);
+  if(record&&docId){ (chatHistories[docId]=chatHistories[docId]||[]).push({role:role==="ai"?"assistant":"user",content:text}); }
+  chatLog.appendChild(wrap); chatLog.scrollTop=chatLog.scrollHeight;
+  return wrap;
+}
+
+function addCitations(wrap, citations){
+  if(!citations||!citations.length) return;
+  const norm=citations.map(c=> (typeof c==="number") ? {page:c, boxes:[]} : c);
+  const cits=document.createElement("div"); cits.className="citations";
+  norm.forEach(c=>{
+    const hasBox=c.boxes && c.boxes.length;
+    const btn=document.createElement("span");
+    btn.className="cit-btn"+(hasBox?" has-box":"");
+    btn.textContent = hasBox ? `Page ${c.page} ✦` : `Page ${c.page}`;
+    btn.title = hasBox ? "Jump to page and highlight the cited region" : "Jump to page";
+    btn.addEventListener("click",()=>gotoCitation(c));
+    cits.appendChild(btn);
+  });
+  wrap.appendChild(cits);
+}
+
+function gotoCitation(c){
+  activeHL = (c.boxes && c.boxes.length) ? {page:c.page, boxes:c.boxes} : null;
+  jumpToPage(c.page);
+}
+
+async function sendChat(){
+  const q=chatInput.value.trim(); if(!q||!docId) return;
+  const ad=docId; chatInput.value="";
+  addMsg("user",q);
+  const loadEl=addMsg("ai","…",false); sendBtn.disabled=true;
+  try{
+    const r=await apiFetch(`${API}/api/chat`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({doc_id:ad,query:q,history:(chatHistories[ad]||[]).slice(-8)})
+    });
+    const d=await r.json();
+    if(!r.ok){ throw new Error(d.detail || `HTTP ${r.status}`); }
+    const answer=d.content||"No response.";
+    const cites=(d.citations && d.citations.length) ? d.citations : (d.cited_pages||[]);
+    if(ad===docId){ loadEl.querySelector(".text").textContent=answer; addCitations(loadEl,cites); }
+    (chatHistories[ad]=chatHistories[ad]||[]).push({role:"assistant",content:answer,citations:cites});
+  }catch(e){ if(ad===docId) loadEl.querySelector(".text").textContent="Error: "+e.message; }
+  finally{ sendBtn.disabled=false; }
+}
+sendBtn.addEventListener("click",sendChat);
+chatInput.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey) sendChat(); });
+
+// ── summary ───────────────────────────────────────────────────────────────────
+function renderSummary(d){
+  const li=(arr,extraKey)=>(arr&&arr.length)?arr.map(it=>{
+    const desc = esc(typeof it==="string" ? it : (it.description||""));
+    const extra = extraKey && it && it[extraKey] ? ` <span style="opacity:.6">(${esc(it[extraKey])})</span>` : "";
+    return `<li>${desc}${extra}</li>`;
+  }).join(""):`<li style="opacity:.6">None identified</li>`;
+  document.getElementById("summaryBody").innerHTML=`
+    <div class="sum-section"><h4>Executive Summary</h4><p>${esc(d.executive||"—")}</p></div>
+    <div class="sum-section"><h4>Risks</h4><ul>${li(d.risks,"severity")}</ul></div>
+    <div class="sum-section"><h4>Deadlines</h4><ul>${li(d.deadlines,"date")}</ul></div>
+    <div class="sum-section"><h4>Recommended Actions</h4><ul>${li(d.actions,"priority")}</ul></div>`;
+  const _dl=document.getElementById("downloadSummaryBtn"); if(_dl) _dl.disabled=false;
+}
+
+document.getElementById("summarizeBtn").addEventListener("click",async()=>{
+  if(!docId) return; const ad=docId;
+  document.getElementById("downloadSummaryBtn").disabled=true;
+  document.getElementById("summaryBody").innerHTML=`<div class="empty-state"><span class="spinner"></span>Generating…</div>`;
+  try{
+    const r=await apiFetch(`${API}/api/summary/${ad}/regenerate`,{method:"POST"});
+    const d=await r.json(); if(!r.ok) throw new Error(d.detail||`HTTP ${r.status}`);
+    summaryCache[ad]=d; if(ad===docId) renderSummary(d);
+  }catch(err){
+    if(ad===docId){ document.getElementById("downloadSummaryBtn").disabled=true; document.getElementById("summaryBody").innerHTML=`<div class="empty-state">Summary failed: ${esc(err.message)}</div>`; }
+  }
+});
+
+// ── download summary as PDF ───────────────────────────────────────────────────
+function downloadSummaryPDF(){
+  const d = summaryCache[docId];
+  if(!d) return;
+  if(!(window.jspdf && window.jspdf.jsPDF)){ alert("PDF library not loaded — check your connection and retry."); return; }
+  const docMeta = docs.find(x=>x.id===docId);
+  const title = (docMeta && docMeta.name) ? docMeta.name : "Document";
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:"pt", format:"a4" });
+  const M = 48, W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), maxW = W - M*2;
+  let y = M;
+  const ensure = h => { if(y + h > H - M){ pdf.addPage(); y = M; } };
+  const heading = txt => {
+    ensure(30);
+    pdf.setFont("helvetica","bold"); pdf.setFontSize(13); pdf.setTextColor(138,74,34);
+    pdf.text(txt, M, y); y += 7;
+    pdf.setDrawColor(212,169,76); pdf.setLineWidth(1); pdf.line(M, y, M+maxW, y); y += 16;
+  };
+  const para = txt => {
+    pdf.setFont("helvetica","normal"); pdf.setFontSize(10.5); pdf.setTextColor(40,30,22);
+    pdf.splitTextToSize(String(txt||""), maxW).forEach(ln => { ensure(15); pdf.text(ln, M, y); y += 15; });
+  };
+  const bullets = arr => {
+    pdf.setFont("helvetica","normal"); pdf.setFontSize(10.5);
+    if(!arr || !arr.length){ ensure(15); pdf.setTextColor(150,138,126); pdf.text("None identified.", M+6, y); y += 15; return; }
+    pdf.setTextColor(40,30,22);
+    arr.forEach(item => {
+      const text = typeof item==="string" ? item : (item && item.description) || "";
+      pdf.splitTextToSize(text, maxW - 16).forEach((ln,i) => {
+        ensure(15); if(i===0) pdf.text("•", M+3, y); pdf.text(ln, M+16, y); y += 15;
+      });
+      y += 3;
+    });
+  };
+  pdf.setFont("helvetica","bold"); pdf.setFontSize(18); pdf.setTextColor(27,20,15);
+  pdf.text("Document Summary", M, y); y += 24;
+  pdf.setFont("helvetica","normal"); pdf.setFontSize(11); pdf.setTextColor(90,78,66);
+  pdf.splitTextToSize(title, maxW).forEach(ln => { ensure(15); pdf.text(ln, M, y); y += 15; });
+  pdf.setFontSize(9.5); pdf.setTextColor(150,138,126);
+  ensure(16); pdf.text("Generated " + new Date().toLocaleString(), M, y); y += 22;
+  heading("Executive Summary"); para(d.executive || "—"); y += 10;
+  heading("Risks"); bullets(d.risks); y += 8;
+  heading("Deadlines"); bullets(d.deadlines); y += 8;
+  heading("Recommended Actions"); bullets(d.actions);
+  const safe = (title.replace(/\.[^.]+$/,"").replace(/[^\w.-]+/g,"_").slice(0,60)) || "document";
+  pdf.save(safe + "_summary.pdf");
+}
+document.getElementById("downloadSummaryBtn").addEventListener("click",downloadSummaryPDF);
+
+// ── highlight-to-explain ──────────────────────────────────────────────────────
+const hlToolbar    = document.getElementById("highlightToolbar");
+const hlExplain    = document.getElementById("highlightExplain");
+const hlQuote      = document.getElementById("explainQuote");
+const hlBody       = document.getElementById("explainBody");
+
+let lastSelection  = "";
+
+function positionToolbar(x, y){
+  const tw = 220, th = 44;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let left = Math.min(x - tw/2, vw - tw - 12);
+  left = Math.max(8, left);
+  let top = y - th - 12;
+  if(top < 8) top = y + 20;
+  hlToolbar.style.left = left + "px";
+  hlToolbar.style.top  = top  + "px";
+}
+
+document.addEventListener("mouseup", e=>{
+  if(e.target.closest("#authScreen") || e.target.closest("#highlightExplain")) return;
+  setTimeout(()=>{
+    const sel = window.getSelection();
+    const txt = sel ? sel.toString().trim() : "";
+    if(txt.length < 8 || txt.length > 2000){
+      hlToolbar.classList.remove("visible"); return;
+    }
+    lastSelection = txt;
+    const range = sel.getRangeAt(0).getBoundingClientRect();
+    positionToolbar(range.left + range.width/2, range.top + window.scrollY);
+    hlToolbar.classList.add("visible");
+  }, 10);
+});
+
+document.addEventListener("mousedown", e=>{
+  if(!e.target.closest("#highlightToolbar")) hlToolbar.classList.remove("visible");
+});
+
+document.getElementById("dismissToolbar").addEventListener("click", ()=>{
+  hlToolbar.classList.remove("visible");
+  window.getSelection()?.removeAllRanges();
+});
+
+document.getElementById("explainSelBtn").addEventListener("click", async ()=>{
+  if(!lastSelection) return;
+  hlToolbar.classList.remove("visible");
+  hlQuote.textContent = lastSelection.length > 280 ? lastSelection.slice(0,280)+"…" : lastSelection;
+  hlBody.innerHTML = `<span class="spinner"></span> Explaining…`;
+  hlExplain.classList.add("visible");
+  try{
+    const res = await apiFetch(`${API}/api/annotations/selection`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({text: lastSelection, doc_id: docId || null, action: "explain"})
+    });
+    const d = await res.json();
+    if(!res.ok) throw new Error(d.detail || `HTTP ${res.status}`);
+    hlBody.textContent = d.result || "No explanation returned.";
+  }catch(err){
+    hlBody.textContent = `Error: ${err.message}`;
+  }
+});
+
+document.getElementById("closeExplain").addEventListener("click", ()=>{
+  hlExplain.classList.remove("visible");
+});
+
+// ── mobile nav ────────────────────────────────────────────────────────────────
+const isMobile = () => window.innerWidth <= 700;
+
+function mobileSetActive(tab) {
+  if (!isMobile()) return;
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  const paneRight = document.querySelector('.pane-right');
+  if (tab === 'doc') {
+    document.getElementById('mnavDoc').classList.add('active');
+    paneRight.classList.remove('mobile-open');
+  } else if (tab === 'chat') {
+    document.getElementById('mnavChat').classList.add('active');
+    paneRight.classList.add('mobile-open');
+    // switch to chat panel
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('.tab[data-tab="chat"]').classList.add('active');
+    document.getElementById('panel-chat').classList.add('active');
+  } else if (tab === 'summary') {
+    document.getElementById('mnavSummary').classList.add('active');
+    paneRight.classList.add('mobile-open');
+    // switch to summary panel
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('.tab[data-tab="summary"]').classList.add('active');
+    document.getElementById('panel-summary').classList.add('active');
+  } else if (tab === 'upload') {
+    document.getElementById('mnavDoc').classList.add('active');
+    paneRight.classList.remove('mobile-open');
+    showOverlay();
+  }
+}
+
+document.getElementById('mnavDoc').addEventListener('click', () => mobileSetActive('doc'));
+document.getElementById('mnavChat').addEventListener('click', () => mobileSetActive('chat'));
+document.getElementById('mnavSummary').addEventListener('click', () => mobileSetActive('summary'));
+document.getElementById('mnavUpload').addEventListener('click', () => mobileSetActive('upload'));
+
+// sync right panel tab clicks with mobile nav
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  if (isMobile()) {
+    document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+    const which = t.dataset.tab;
+    document.getElementById(which === 'chat' ? 'mnavChat' : 'mnavSummary').classList.add('active');
+  }
+}));
+
+// reset on resize
+window.addEventListener('resize', () => {
+  if (!isMobile()) {
+    document.querySelector('.pane-right').classList.remove('mobile-open');
+  }
+});
+
+// ── boot ──────────────────────────────────────────────────────────────────────
+// Render saved email chip on page load (works even before authToken check)
+renderSavedChip();
+
+if(authToken){
+  enterApp();
+} else {
+  authScreen.classList.remove("hidden");
+}
+</script>
+</body>
+</html>

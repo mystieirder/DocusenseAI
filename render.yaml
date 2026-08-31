@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────────────────────────────
+#  Render Blueprint — free single-service deploy of DocuSense AI
+# ─────────────────────────────────────────────────────────────────────
+#  Deploy: push this repo to GitHub → Render → "New +" → "Blueprint" →
+#  pick the repo. Render reads this file, builds ./Dockerfile, and prompts
+#  for every var marked `sync: false`. See DEPLOY.md for the full walkthrough
+#  (Supabase Postgres + Storage, Gemini key).
+#
+#  Free plan notes: 512 MB RAM / 0.1 CPU, and the service SLEEPS after ~15 min
+#  idle (first request after that cold-starts in ~30–60 s). No credit card.
+services:
+  - type: web
+    name: docusense
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # ── Runtime mode (free-tier: single service, in-thread ingest, API embeds)
+      - key: ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SERVE_FRONTEND
+        value: "true"
+      - key: INGEST_MODE
+        value: thread
+      - key: EMBED_BACKEND
+        value: gemini
+      - key: GEMINI_EMBED_DIM
+        value: "768"
+
+      # ── Secret signing key — Render generates a strong value automatically
+      - key: SECRET_KEY
+        generateValue: true
+
+      # ── Secrets / connection strings — set these in the Render dashboard
+      - key: DATABASE_URL          # postgresql+psycopg://...supabase...:5432/postgres?sslmode=require
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: S3_ENDPOINT_URL       # https://<project-ref>.supabase.co/storage/v1/s3
+        sync: false
+      - key: S3_PUBLIC_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_REGION            # must MATCH your Supabase project region (SigV4-validated)
+        sync: false
+
+      # ── Storage addressing (managed S3 gateways need path-style, no SSE)
+      - key: S3_ADDRESSING_STYLE
+        value: path
+      - key: S3_USE_SSE
+        value: "false"
+
+      # ── Same-origin frontend ⇒ CORS not needed (empty list disables it)
+      - key: CORS_ORIGINS
+        value: "[]"
+
+      # ── Optional: grant yourself the admin role (JSON array of emails)
+      # - key: ADMIN_EMAILS
+      #   value: '["you@example.com"]'

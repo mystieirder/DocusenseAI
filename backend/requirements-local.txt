@@ -1,0 +1,15 @@
+# ─────────────────────────────────────────────────────────────────────
+#  Local embedding backend (EMBED_BACKEND=local)
+# ─────────────────────────────────────────────────────────────────────
+#  Adds sentence-transformers + torch (~1.5 GB resident). Only needed for
+#  self-hosting / big instances that run embeddings locally instead of via
+#  the Gemini API. docker-compose installs this by building with
+#  --build-arg INSTALL_LOCAL_EMBED=true.
+#
+#  Install alongside the base set:   pip install -r requirements.txt -r requirements-local.txt
+#
+#  CPU-only torch keeps the download small; delete the extra-index line if
+#  you want the default (CUDA) build.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.2.0
+sentence-transformers>=3.0.0
