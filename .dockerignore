@@ -1,0 +1,27 @@
+# Keep the Docker build context small and secret-free.
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Never bake secrets or local envs into the image
+.env
+.env.*
+!.env.render.example
+!.env.example
+
+# VCS / editor / docs not needed at runtime
+.git/
+.gitignore
+.vscode/
+.idea/
+*.md
+DEPLOY.md
+README.md
+
+# Local virtualenvs / caches
+.venv/
+venv/
+env/
+*.log

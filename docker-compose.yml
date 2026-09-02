@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: docusense
+      POSTGRES_PASSWORD: docusense
+      POSTGRES_DB: docusense
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docusense"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: docusense
+      MINIO_ROOT_PASSWORD: docusense-secret
+    ports:
+      - "9000:9000"    # S3 API
+      - "9001:9001"    # web console
+    volumes:
+      - miniodata:/data
+    # No healthcheck: the minio image is minimal and may not bundle `mc`/`curl`.
+    # The API creates the bucket on startup with retries (see storage.ensure_bucket),
+    # so `service_started` is sufficient and avoids a false "unhealthy" boot block.
+
+  api:
+    build:
+      context: ./backend
+      args:
+        INSTALL_LOCAL_EMBED: "true"    # self-host uses local sentence-transformers
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+      minio:    { condition: service_started }
+    volumes:
+      - modelcache:/root/.cache            # cache the embedding model between restarts
+
+  worker:
+    build:
+      context: ./backend
+      args:
+        INSTALL_LOCAL_EMBED: "true"
+    command: celery -A app.celery_app.celery worker --loglevel=info --concurrency=2
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+      minio:    { condition: service_started }
+    volumes:
+      - modelcache:/root/.cache
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "5500:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  miniodata:
+  modelcache:
