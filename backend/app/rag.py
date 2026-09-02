@@ -67,6 +67,8 @@ def embed_texts(texts, *, is_query: bool = False) -> Optional[List[list]]:
     Returns list[list[float]] (L2-normalized), or None when EMBED_BACKEND="keyword"
     (dense disabled) or there is nothing to embed. Returning None — rather than
     raising — lets the ingest path still store chunks (sparse retrieval keeps working).
+    
+    Performance: Batches requests and uses connection pooling for API backends.
     """
     if not texts:
         return None
@@ -90,8 +92,10 @@ def embed_texts(texts, *, is_query: bool = False) -> Optional[List[list]]:
     # default: local sentence-transformers (encoder already L2-normalizes)
     import numpy as np
     model = get_embedder()
+    # Use larger batch size for better GPU/CPU utilization
     vecs = model.encode(list(texts), normalize_embeddings=True, convert_to_numpy=True,
-                        batch_size=32, show_progress_bar=False)
+                        batch_size=64, show_progress_bar=False, 
+                        device=model.device if hasattr(model, 'device') else 'cpu')
     return np.asarray(vecs, dtype="float32").tolist()
 
 

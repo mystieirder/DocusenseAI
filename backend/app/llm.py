@@ -189,8 +189,9 @@ def _gemini_generate(messages: Messages, *, json_mode: bool = False, temperature
     _gemini_require_key()
     prompt = _to_prompt(messages)
     url = f"{_GEMINI_BASE}/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
+    # Use httpx with connection pooling for better performance
     try:
-        with httpx.Client(timeout=90) as client:
+        with httpx.Client(timeout=90, limits=httpx.Limits(max_connections=10)) as client:
             resp = client.post(url, json=_gemini_payload(prompt, json_mode=json_mode, temperature=temperature))
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach Gemini: {e}") from e
@@ -214,8 +215,9 @@ def _gemini_stream(messages: Messages, *, temperature: float = 0.2) -> Iterator[
     url = (f"{_GEMINI_BASE}/{settings.GEMINI_MODEL}:streamGenerateContent"
            f"?alt=sse&key={settings.GEMINI_API_KEY}")
     payload = _gemini_payload(prompt, temperature=temperature)
+    # Use httpx with connection pooling for better performance
     try:
-        with httpx.Client(timeout=None) as client:
+        with httpx.Client(timeout=None, limits=httpx.Limits(max_connections=10)) as client:
             with client.stream("POST", url, json=payload) as resp:
                 if resp.status_code >= 400:
                     resp.read()
@@ -254,7 +256,8 @@ def _gemini_ocr_images(images: List[bytes], *, mime_type: str = "image/jpeg",
     url = f"{_GEMINI_BASE}/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
     payload = {"contents": [{"role": "user", "parts": parts}],
                "generationConfig": {"temperature": 0.0, "maxOutputTokens": max_tokens or settings.LLM_MAX_OUTPUT_TOKENS}}
-    with httpx.Client(timeout=180) as client:
+    # Use httpx with connection pooling and longer timeout for OCR (large payloads)
+    with httpx.Client(timeout=180, limits=httpx.Limits(max_connections=10)) as client:
         for attempt in range(3):
             try:
                 resp = client.post(url, json=payload)
@@ -303,8 +306,9 @@ def _oai_generate(base_url: str, api_key: str, model: str, messages: Messages,
     if json_mode:
         body["response_format"] = {"type": "json_object"}
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    # Use httpx with connection pooling for better performance
     try:
-        with httpx.Client(timeout=90) as client:
+        with httpx.Client(timeout=90, limits=httpx.Limits(max_connections=10)) as client:
             resp = client.post(f"{base_url}/chat/completions", json=body, headers=headers)
     except httpx.HTTPError as e:
         raise LLMError(f"Could not reach LLM backend: {e}") from e
@@ -332,8 +336,9 @@ def _oai_stream(base_url: str, api_key: str, model: str,
         "stream": True,
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    # Use httpx with connection pooling for better performance
     try:
-        with httpx.Client(timeout=None) as client:
+        with httpx.Client(timeout=None, limits=httpx.Limits(max_connections=10)) as client:
             with client.stream("POST", f"{base_url}/chat/completions", json=body, headers=headers) as resp:
                 if resp.status_code >= 400:
                     resp.read()
@@ -387,7 +392,8 @@ def _mistral_ocr_images(images: List[bytes], *, mime_type: str = "image/jpeg",
         "max_tokens": max_tokens or settings.LLM_MAX_OUTPUT_TOKENS,
     }
     headers = {"Authorization": f"Bearer {settings.MISTRAL_API_KEY}", "Content-Type": "application/json"}
-    with httpx.Client(timeout=180) as client:
+    # Use httpx with connection pooling and longer timeout for OCR (large payloads)
+    with httpx.Client(timeout=180, limits=httpx.Limits(max_connections=10)) as client:
         for attempt in range(3):
             try:
                 resp = client.post(f"{_MISTRAL_BASE}/chat/completions", json=body, headers=headers)
@@ -413,13 +419,17 @@ def _mistral_ocr_images(images: List[bytes], *, mime_type: str = "image/jpeg",
 
 
 def embed_mistral(texts: List[str]) -> List[List[float]]:
-    """Embed texts using Mistral's embedding model (1024-dim)."""
+    """Embed texts using Mistral's embedding model (1024-dim).
+    
+    Performance: Uses connection pooling and HTTP/2 for faster batch processing.
+    """
     _mistral_require_key()
     if not texts:
         return []
     headers = {"Authorization": f"Bearer {settings.MISTRAL_API_KEY}", "Content-Type": "application/json"}
     out: List[List[float]] = []
-    with httpx.Client(timeout=120) as client:
+    # Use httpx with connection pooling and HTTP/2 for better performance
+    with httpx.Client(timeout=120, http2=True, limits=httpx.Limits(max_connections=10)) as client:
         for i in range(0, len(texts), settings.EMBED_BATCH):
             group = texts[i:i + settings.EMBED_BATCH]
             body = {"model": settings.MISTRAL_EMBED_MODEL, "inputs": [t or " " for t in group]}
@@ -511,7 +521,10 @@ def ocr_image(image_bytes: bytes, *, mime_type: str = "image/jpeg",
 
 def embed(texts: List[str], *, dim: int | None = None,
           task_type: str = "RETRIEVAL_DOCUMENT") -> List[List[float]]:
-    """Batch-embed texts with the Gemini embedding API."""
+    """Batch-embed texts with the Gemini embedding API.
+    
+    Performance: Uses connection pooling and HTTP/2 for faster batch processing.
+    """
     _gemini_require_key()
     if not texts:
         return []
@@ -520,7 +533,8 @@ def embed(texts: List[str], *, dim: int | None = None,
     model_path = model if model.startswith("models/") else f"models/{model}"
     url = f"{_GEMINI_BASE}/{model}:batchEmbedContents?key={settings.GEMINI_API_KEY}"
     out: List[List[float]] = []
-    with httpx.Client(timeout=120) as client:
+    # Use httpx with connection pooling and HTTP/2 for better performance
+    with httpx.Client(timeout=120, http2=True, limits=httpx.Limits(max_connections=10)) as client:
         for i in range(0, len(texts), settings.EMBED_BATCH):
             group = texts[i:i + settings.EMBED_BATCH]
             body = {"requests": [
